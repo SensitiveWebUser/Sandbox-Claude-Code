@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# scc — sandboxed Claude Code
+#
+# Runs Claude Code inside an isolated Docker container with ONLY the current
+# directory mounted as the workspace. Login and Claude Code's self-updating
+# install persist in a named volume, so you authenticate once and always run
+# the newest release.
+#
+# Hardening applied to every run:
+#   --cap-drop ALL (plus only the six caps the entrypoint needs),
+#   no-new-privileges, PID limit, --init, non-root user remapped to your
+#   host UID/GID inside the container. No sudo exists in the image. Host
+#   environment, SSH keys, and the rest of $HOME are never exposed.
+set -euo pipefail
+
+IMAGE="${SCC_IMAGE:-scc:latest}"
+SCC_DIR="${SCC_DIR:-$HOME/.scc}"
+VOLUME="${SCC_VOLUME:-scc-home}"
+
+usage() {
+    cat <<'EOF'
+scc — run Claude Code inside an isolated Docker sandbox
+
+From inside a project directory:
+  scc [args...]        Claude Code with this directory as its only workspace
+                       (args go to claude, e.g. `scc -c`, `scc "fix the tests"`)
+  scc yolo [args...]   Same, plus --dangerously-skip-permissions.
+                       The egress firewall is ON by default in this mode.
+  scc shell            Plain shell inside the sandbox (debugging)
+
+Management:
+  scc login            One-time browser login (persists in the home volume)
+  scc update           Update Claude Code to the newest release right now
+  scc rebuild          Rebuild the image (fresh base OS + baked-in Claude Code)
+  scc help             This text
+
+Environment switches:
+  SCC_FIREWALL=1|0               Force egress firewall on/off
+                                 (default: off for `scc`, ON for `scc yolo`)
+  FIREWALL_EXTRA_DOMAINS=a.com,b.org   Extra domains the firewall allows
+  SCC_DOCKER_ARGS="..."          Extra arguments appended to `docker run`
+  SCC_ALLOW_ANY_DIR=1            Permit running from $HOME or / (not advised)
+EOF
+}
+
+die() { echo "scc: $*" >&2; exit 1; }
+
+command -v docker >/dev/null 2>&1 \
+    || die "docker not found. On Arch: sudo pacman -S docker docker-buildx"
+
+build() {
+    [[ -f "$SCC_DIR/Dockerfile" ]] \
+        || die "no Dockerfile in $SCC_DIR — run install.sh or set SCC_DIR"
+    docker build --pull -t "$IMAGE" "$SCC_DIR"
+}
+
+ensure_image() {
+    docker image inspect "$IMAGE" >/dev/null 2>&1 || build
+}
+
+guard_workdir() {
+    [[ "${SCC_ALLOW_ANY_DIR:-0}" == "1" ]] && return 0
+    case "$PWD" in
+        "$HOME"|/)
+            die "refusing to mount $PWD into the sandbox — cd into a project first (override: SCC_ALLOW_ANY_DIR=1)"
+            ;;
+    esac
+}
+
+# Build the common, hardened `docker run` argument list into $ARGS.
+# $1 = "firewall" or "open".
+base_args() {
+    ARGS=(
+        --rm --init
+        --hostname scc
+        --security-opt no-new-privileges:true
+        --cap-drop ALL
+        --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER
+        --cap-add SETUID --cap-add SETGID --cap-add KILL
+        --pids-limit "${SCC_PIDS_LIMIT:-2048}"
+        -e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)"
+        -e TERM -e COLORTERM
+        -e CLAUDE_CODE_OAUTH_TOKEN
+        -v "$VOLUME:/home/node"
+    )
+    if [[ -t 0 ]]; then ARGS+=(-it); else ARGS+=(-i); fi
+    if [[ "$1" == "firewall" ]]; then
+        ARGS+=(-e SCC_FIREWALL=1 -e FIREWALL_EXTRA_DOMAINS
+               --cap-add NET_ADMIN --cap-add NET_RAW)
+    fi
+    if [[ -n "${SCC_DOCKER_ARGS:-}" ]]; then
+        # Intentional word splitting for user-supplied extra args.
+        # shellcheck disable=SC2206
+        ARGS+=(${SCC_DOCKER_ARGS})
+    fi
+}
+
+# Mount ONLY the current directory, at the same absolute path as on the host.
+workspace_args() {
+    ARGS+=(-v "$PWD:$PWD" -w "$PWD")
+    if [[ -f "$HOME/.gitconfig" ]]; then
+        ARGS+=(-v "$HOME/.gitconfig:/home/node/.gitconfig:ro")
+    fi
+    # No signing keys are mounted, so disable commit signing to keep commits
+    # from failing for users who sign by default.
+    ARGS+=(-e GIT_CONFIG_COUNT=1
+           -e GIT_CONFIG_KEY_0=commit.gpgsign -e GIT_CONFIG_VALUE_0=false)
+}
+
+run_in_workspace() {  # $1 = "firewall"|"open"; rest = command inside sandbox
+    local net_mode="$1"; shift
+    guard_workdir
+    ensure_image
+    base_args "$net_mode"
+    workspace_args
+    exec docker run "${ARGS[@]}" "$IMAGE" "$@"
+}
+
+fw_pref() {  # $1 = default when SCC_FIREWALL is unset; echoes mode name
+    local v="${SCC_FIREWALL:-$1}"
+    if [[ "$v" == "1" ]]; then echo firewall; else echo open; fi
+}
+
+case "${1:-}" in
+    help|-h|--help)
+        usage
+        ;;
+    rebuild|build)
+        build
+        ;;
+    update)
+        ensure_image
+        base_args open
+        exec docker run "${ARGS[@]}" "$IMAGE" claude update
+        ;;
+    login)
+        ensure_image
+        echo "Opening Claude Code with host networking for the one-time OAuth login."
+        echo "Finish login in the browser, then /exit. Credentials persist in the"
+        echo "'$VOLUME' Docker volume; every later 'scc' run reuses them."
+        base_args open
+        exec docker run "${ARGS[@]}" --network host "$IMAGE" claude
+        ;;
+    shell|sh)
+        run_in_workspace "$(fw_pref 0)" bash
+        ;;
+    yolo)
+        shift
+        run_in_workspace "$(fw_pref 1)" claude --dangerously-skip-permissions "$@"
+        ;;
+    *)
+        run_in_workspace "$(fw_pref 0)" claude "$@"
+        ;;
+esac

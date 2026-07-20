@@ -1,0 +1,69 @@
+# scc — sandboxed Claude Code
+
+Run Claude Code inside an isolated Docker container, from any repo, with one command. Built for plain Docker Engine on Arch Linux — no Docker Desktop, no rootless mode, no userns changes on the host.
+
+`cd` into a project and run `scc`. That directory is bind-mounted into the container at the same absolute path and is the *only* thing on your machine the agent can see. You log in once (persisted in a Docker volume) and Claude Code keeps itself on the newest release via its official native installer's background auto-updater, which writes into that same volume.
+
+## How it works, in one paragraph
+
+The image is `node:22-bookworm-slim` plus git and a few tools, with Claude Code installed by Anthropic's official native installer as a non-root user. A small entrypoint runs as root only long enough to remap the container user to your host UID/GID (an edit to the container's own `/etc/passwd` — host namespaces are never touched, and files the agent writes end up owned by you, not root), fix ownership of the persisted home volume, optionally raise a default-deny egress firewall, and then drop privileges with `gosu`. The launcher runs every container with `--cap-drop ALL` plus only the six capabilities the entrypoint needs, `no-new-privileges`, a PID limit (fork-bomb guard), and `--init` for signal handling and zombie reaping. There is no `sudo` in the image.
+
+## Requirements (Arch Linux)
+
+```bash
+sudo pacman -Syu docker docker-buildx
+sudo systemctl enable --now docker.service
+sudo usermod -aG docker "$USER"   # then log out/in, or: newgrp docker
+```
+
+Be aware that membership in the `docker` group is root-equivalent on the host. That's a property of Docker itself, independent of anything this sandbox does.
+
+## Install
+
+```bash
+cd path/to/these/files
+./install.sh      # copies build files to ~/.scc and the launcher to ~/.local/bin/scc
+scc rebuild       # build the image (a few minutes the first time)
+scc login         # one-time browser login, then /exit
+```
+
+`scc login` runs the container with host networking so Claude Code's localhost OAuth callback works, and stores the resulting credentials in the `scc-home` volume. Every later run reuses them. If browser login misbehaves, run `claude setup-token` anywhere you have a browser and export the result as `CLAUDE_CODE_OAUTH_TOKEN` — `scc` passes that variable through automatically when it's set.
+
+## Daily use
+
+| Command | What it does |
+|---|---|
+| `scc` | Claude Code in the current repo, permission prompts on |
+| `scc "fix the failing tests"` | Same, with an initial prompt (any `claude` args work, e.g. `scc -c`) |
+| `scc yolo` | `--dangerously-skip-permissions`, with the egress firewall **on** by default |
+| `scc shell` | A plain shell inside the sandbox, for poking around |
+| `scc update` | Jump to the newest Claude Code release immediately |
+| `scc rebuild` | Rebuild the image (fresh base OS; also re-pulls the base image) |
+
+The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `help`) are reserved; everything else is passed straight to `claude`.
+
+## The egress firewall
+
+Interactive runs default to full network access; `scc yolo` defaults to a default-deny allowlist, because an agent that skips permission prompts shouldn't also have unrestricted egress. Force it either way with `SCC_FIREWALL=1` or `SCC_FIREWALL=0`.
+
+Allowed out of the box: DNS (only to the resolvers in the container's `resolv.conf`), GitHub's published IP ranges, Anthropic/Claude endpoints, the npm registry, and PyPI. Add more with `FIREWALL_EXTRA_DOMAINS=crates.io,static.crates.io scc yolo`. Two honest limits: domains are resolved to IPs once at container start, so a CDN rotating addresses mid-session can break an allowed host (restart to refresh), and DNS itself remains a narrow exfiltration side channel.
+
+## Staying up to date
+
+Three layers, strongest first: Claude Code's native install auto-updates in the background into the persisted volume, so ordinary use keeps you current; `scc update` runs `claude update` in the container to force the newest release right now; and `scc rebuild` refreshes the base image and the baked-in install (used by fresh volumes). If you ever want reproducibility instead of freshness, pin a version in the Dockerfile (`... install.sh | bash -s -- <version>`) and add `ENV DISABLE_AUTOUPDATER=1`.
+
+## What the sandbox can and cannot touch
+
+Mounted in: the current directory (read-write, same path as on the host), your `~/.gitconfig` (read-only, so commits carry your name — commit signing is disabled inside since no keys are present), and the `scc-home` volume holding Claude's install and credentials. Passed through: `TERM`, `COLORTERM`, and `CLAUDE_CODE_OAUTH_TOKEN` if set.
+
+Not shared: SSH keys, the rest of your home directory, your shell environment, host credentials of any kind. Pushing over SSH therefore won't authenticate from inside — push from the host, or use HTTPS with a scoped token via `SCC_DOCKER_ARGS="-e GH_TOKEN"`. The launcher also refuses to run from `$HOME` or `/`, since mounting those would defeat the point.
+
+Escape hatch for anything unusual: `SCC_DOCKER_ARGS` appends raw arguments to `docker run` (extra mounts, `--memory 8g`, ports for a dev server, SSH agent forwarding if you accept the exposure).
+
+## Troubleshooting
+
+Login never completes in the browser: make sure you used `scc login` (host networking) rather than logging in from a normal `scc` run; the fallback is `claude setup-token` plus `CLAUDE_CODE_OAUTH_TOKEN` as described above. Containers can't resolve DNS: put `{"dns": ["1.1.1.1", "9.9.9.9"]}` in `/etc/docker/daemon.json` and restart docker — a known quirk on some Arch network setups. `docker: permission denied`: you haven't re-logged-in after joining the `docker` group. Firewalled run can't reach a host it needs: add it to `FIREWALL_EXTRA_DOMAINS`. Weird terminal rendering: your terminfo may be exotic; try `TERM=xterm-256color scc`. Diagnostics from inside: `scc shell`, then `claude doctor`.
+
+## Honest limits
+
+A container is a strong boundary for this purpose, but it is not a VM: the kernel is shared, so treat `scc` as protection against a misbehaving agent, not against a determined kernel exploit. `yolo` mode is *bounded*, not neutralized — within the mounted repo and whatever network you allow it, the agent can still do real things (edit files, commit, hit APIs), so review diffs before pushing. And the one-time login plus first build need normal network access; everything after that is fast.
