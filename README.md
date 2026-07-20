@@ -4,6 +4,8 @@ Run Claude Code inside an isolated Docker container, from any repo, with one com
 
 `cd` into a project and run `scc`. That directory is bind-mounted into the container at the same absolute path and is the *only* thing on your machine the agent can see. You log in once (persisted in a Docker volume) and Claude Code keeps itself on the newest release via its official native installer's background auto-updater, which writes into that same volume.
 
+> ⚠️ **Independent project — not affiliated with Anthropic.** `scc` is an unofficial, community wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime, straight from Anthropic's own installer, and simply runs it inside a container. "Claude" and "Claude Code" are Anthropic's; your use of Claude Code is governed by Anthropic's terms, not this project's. This tool is provided as-is, with no warranty (see [License](#license)).
+
 ## How it works, in one paragraph
 
 The image is `node:22-bookworm-slim` plus git and a few tools, with Claude Code installed by Anthropic's official native installer as a non-root user. A small entrypoint runs as root only long enough to remap the container user to your host UID/GID (an edit to the container's own `/etc/passwd` — host namespaces are never touched, and files the agent writes end up owned by you, not root), fix ownership of the persisted home volume, optionally raise a default-deny egress firewall, and then drop privileges with `gosu`. The launcher runs every container with `--cap-drop ALL` plus only the six capabilities the entrypoint needs, `no-new-privileges`, a PID limit (fork-bomb guard), and `--init` for signal handling and zombie reaping. There is no `sudo` in the image.
@@ -67,3 +69,17 @@ Login never completes in the browser: make sure you used `scc login` (host netwo
 ## Honest limits
 
 A container is a strong boundary for this purpose, but it is not a VM: the kernel is shared, so treat `scc` as protection against a misbehaving agent, not against a determined kernel exploit. `yolo` mode is *bounded*, not neutralized — within the mounted repo and whatever network you allow it, the agent can still do real things (edit files, commit, hit APIs), so review diffs before pushing. And the one-time login plus first build need normal network access; everything after that is fast.
+
+## License
+
+`scc` is **source-available**, not "open source" in the OSI sense. It is licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE):
+
+- ✅ **Free for any noncommercial use** — personal projects, study, research, hobby, nonprofits, education, government. Use it, modify it, share it.
+- 💼 **Commercial use requires a separate license** from the copyright holder, who retains all commercial rights.
+- 📝 It comes **as-is, with no warranty** (see the license text).
+
+Contributions are welcome under the [Contributor License Agreement](./CLA.md), which keeps the project's commercial rights with the owner while you retain ownership of your own work.
+
+## Not affiliated with Anthropic
+
+`scc` is independent and unofficial. It is not endorsed by, sponsored by, or partnered with Anthropic, and it does not own or control Claude Code. It installs and runs Anthropic's official CLI without modification. Trademarks belong to their respective owners.

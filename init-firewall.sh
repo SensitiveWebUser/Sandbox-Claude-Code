@@ -1,4 +1,5 @@
 #!/bin/bash
+# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 # scc egress firewall — default-deny with a small allowlist.
 # Runs as root from the entrypoint, before privileges are dropped.
 # Requires NET_ADMIN + NET_RAW; the `scc` launcher adds these automatically

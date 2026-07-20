@@ -1,6 +1,13 @@
 # syntax=docker/dockerfile:1
 #
 # scc — sandboxed Claude Code
+# Source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+#
+# NOTICE: scc is an INDEPENDENT, UNOFFICIAL project. It is NOT affiliated with,
+# endorsed by, or bundled with Anthropic or Claude Code. This image does not
+# contain Claude Code; it downloads Anthropic's official CLI at build time from
+# Anthropic's own installer and runs it unmodified. "Claude"/"Claude Code" are
+# Anthropic's. Use of Claude Code is governed by Anthropic's terms.
 #
 # Design:
 #   * Claude Code installed via Anthropic's official native installer, as a

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # scc — sandboxed Claude Code
+# Source-available under PolyForm Noncommercial 1.0.0 (see LICENSE):
+# free for noncommercial use; commercial use needs a separate license.
+#
+# NOTICE: independent, UNOFFICIAL project — not affiliated with Anthropic and
+# does not own or control Claude Code. It runs Anthropic's official CLI unmodified.
 #
 # Runs Claude Code inside an isolated Docker container with ONLY the current
 # directory mounted as the workspace. Login and Claude Code's self-updating
