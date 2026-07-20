@@ -10,8 +10,11 @@
 # shellcheck disable=SC2154
 
 cmd_uninstall() {
-  local bindir="${BIN_DIR:-$HOME/.local/bin}"
-  local launcher="$bindir/scc"
+  # Resolve the installed launcher via PATH (finds a custom BIN_DIR install,
+  # since it must be on PATH to be runnable); fall back to the default dir.
+  local launcher
+  launcher="$(command -v scc 2>/dev/null || true)"
+  [[ -n "$launcher" ]] || launcher="${BIN_DIR:-$HOME/.local/bin}/scc"
   local rm_volume=0 rm_image=0 rm_config=0 assume_yes=0
 
   while [[ $# -gt 0 ]]; do
@@ -39,7 +42,11 @@ EOF
   done
 
   scc_heading "scc uninstall — the following will be removed:"
-  [[ -e "$launcher" ]]         && echo "  launcher:  $launcher"
+  if [[ -e "$launcher" ]]; then
+    echo "  launcher:  $launcher"
+  else
+    scc_warn "launcher not found (looked for $launcher) — if installed to a custom path, remove it manually"
+  fi
   [[ -d "$SCC_DIR" ]]          && echo "  build dir: $SCC_DIR"
   if (( rm_config )); then [[ -e "$SCC_CONFIG_FILE" ]] && echo "  config:    $SCC_CONFIG_FILE"; fi
   if (( rm_volume )); then echo "  volume:    $VOLUME  (your login + Claude Code install — you will need to log in again)"; fi
