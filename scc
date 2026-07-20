@@ -51,6 +51,13 @@ case "$cmd" in
 esac
 
 scc_guard_os
+
+# uninstall removes files and (optionally) docker objects; it must run even
+# when docker is already gone, so it is exempt from the docker requirement.
+case "$cmd" in
+  uninstall) shift; cmd_uninstall "$@"; exit 0 ;;
+esac
+
 scc_require_docker
 
 case "$cmd" in

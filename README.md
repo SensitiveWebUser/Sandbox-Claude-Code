@@ -42,7 +42,7 @@ scc login         # one-time browser login, then /exit
 | `scc update` | Jump to the newest Claude Code release immediately |
 | `scc rebuild` | Rebuild the image (fresh base OS; also re-pulls the base image) |
 
-The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `help`) are reserved; everything else is passed straight to `claude`.
+The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `uninstall`, `help`) are reserved; everything else is passed straight to `claude`.
 
 ## The egress firewall
 

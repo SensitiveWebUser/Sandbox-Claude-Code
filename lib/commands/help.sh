@@ -17,6 +17,7 @@ Management:
   scc login            One-time browser login (persists in the home volume)
   scc update           Update Claude Code to the newest release right now
   scc rebuild          Rebuild the image (fresh base OS + baked-in Claude Code)
+  scc uninstall        Remove scc (add --all to also drop the volume + image)
   scc help             This text
 
 Configuration (all optional):
