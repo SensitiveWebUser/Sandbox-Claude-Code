@@ -29,7 +29,7 @@ install -m 0755 "$SRC_DIR/init-firewall.sh" "$SCC_DIR/init-firewall.sh"
 install -m 0755 "$SRC_DIR/scc"              "$BIN_DIR/scc"
 
 # Ship the launcher library (modules + subcommands), replacing any old copy.
-rm -rf "$SCC_DIR/lib"
+rm -rf "${SCC_DIR:?}/lib"
 cp -R "$SRC_DIR/lib" "$SCC_DIR/lib"
 find "$SCC_DIR/lib" -type f -name '*.sh' -exec chmod 0644 {} +
 

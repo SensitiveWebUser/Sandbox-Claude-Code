@@ -8,8 +8,8 @@
 #
 # Thin dispatcher: locate lib/, load config, guard OS, route to a subcommand.
 # Run assembly is in lib/docker.sh; in-container setup in entrypoint.sh.
-# Resolved settings below are consumed by sourced modules, invisible to
-# shellcheck across the dynamic source — silence SC2034.
+# Resolved settings below are consumed by the sourced modules, so a static
+# check can't see their use across the dynamic source — silence SC2034.
 # shellcheck disable=SC2034
 set -euo pipefail
 
