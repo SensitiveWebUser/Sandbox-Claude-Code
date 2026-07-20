@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Test stub for `docker`: never runs anything. `image inspect` succeeds (so the
+# launcher thinks the image exists and skips building); every other invocation
+# records its full argument list to $SCC_DOCKER_LOG for assertions.
+set -eu
+
+if [[ "${1:-}" == "image" && "${2:-}" == "inspect" ]]; then
+  exit 0
+fi
+
+: "${SCC_DOCKER_LOG:?SCC_DOCKER_LOG must be set}"
+printf '%s\n' "$@" > "$SCC_DOCKER_LOG"
+exit 0

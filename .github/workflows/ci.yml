@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck and bats
+        run: sudo apt-get update && sudo apt-get install -y shellcheck bats
+
+      - name: Shellcheck (follows sourced files)
+        run: |
+          shellcheck -x \
+            scc \
+            lib/*.sh \
+            lib/commands/*.sh \
+            install.sh \
+            entrypoint.sh \
+            init-firewall.sh \
+            tests/stubs/docker
+
+      - name: Bats tests
+        run: bats tests
+
+      - name: Docker build smoke test
+        run: docker build -t scc:ci .

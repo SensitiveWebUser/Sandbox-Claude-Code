@@ -50,6 +50,22 @@ Interactive runs default to full network access; `scc yolo` defaults to a defaul
 
 Allowed out of the box: DNS (only to the resolvers in the container's `resolv.conf`), GitHub's published IP ranges, Anthropic/Claude endpoints, the npm registry, and PyPI. Add more with `FIREWALL_EXTRA_DOMAINS=crates.io,static.crates.io scc yolo`. Two honest limits: domains are resolved to IPs once at container start, so a CDN rotating addresses mid-session can break an allowed host (restart to refresh), and DNS itself remains a narrow exfiltration side channel.
 
+## Configuration file
+
+Everything works with zero configuration. When you want defaults that stick, drop a file at `~/.config/scc/config` (override the path with `$SCC_CONFIG`). It's a simple `key = value` file — parsed with a fixed key allowlist and never executed as code:
+
+```ini
+# ~/.config/scc/config
+image         = scc:latest
+volume        = scc-home
+pids_limit    = 4096
+firewall      = auto            # auto | on | off
+extra_domains = crates.io,static.crates.io
+docker_args   = --memory 8g
+```
+
+Values resolve as **built-in defaults < config file < environment variables < CLI flags** (later wins), so a one-off `SCC_FIREWALL=1 scc` still overrides the file.
+
 ## Staying up to date
 
 Three layers, strongest first: Claude Code's native install auto-updates in the background into the persisted volume, so ordinary use keeps you current; `scc update` runs `claude update` in the container to force the newest release right now; and `scc rebuild` refreshes the base image and the baked-in install (used by fresh volumes). If you ever want reproducibility instead of freshness, pin a version in the Dockerfile (`... install.sh | bash -s -- <version>`) and add `ENV DISABLE_AUTOUPDATER=1`.
@@ -69,6 +85,19 @@ Login never completes in the browser: make sure you used `scc login` (host netwo
 ## Honest limits
 
 A container is a strong boundary for this purpose, but it is not a VM: the kernel is shared, so treat `scc` as protection against a misbehaving agent, not against a determined kernel exploit. `yolo` mode is *bounded*, not neutralized — within the mounted repo and whatever network you allow it, the agent can still do real things (edit files, commit, hit APIs), so review diffs before pushing. And the one-time login plus first build need normal network access; everything after that is fast.
+
+## Development
+
+The launcher is modular pure Bash (no runtime dependencies): a thin `scc` dispatcher sourcing `lib/` (`ui`, `common`, `config`, `firewall`, `docker`) and one file per subcommand under `lib/commands/`. Running the repo's `./scc` uses that `lib/` directly, so launcher edits take effect without reinstalling; only image changes (`Dockerfile`, `entrypoint.sh`, `init-firewall.sh`) need `./install.sh && scc rebuild`.
+
+Tests are [`bats`](https://github.com/bats-core/bats-core) and stub `docker`, asserting on the assembled `docker run` argv — so the security invariants (capability set, mount set, firewall mode) are checked without a real container:
+
+```bash
+shellcheck -x scc lib/*.sh lib/commands/*.sh install.sh entrypoint.sh init-firewall.sh
+bats tests
+```
+
+CI runs both plus a `docker build` smoke test. Contributions follow the [CLA](./CLA.md); build rules live in [AGENTS.md](./AGENTS.md).
 
 ## License
 
