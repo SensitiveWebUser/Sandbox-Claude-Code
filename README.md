@@ -22,9 +22,24 @@ Be aware that membership in the `docker` group is root-equivalent on the host. T
 
 ## Install
 
+Quick install (downloads a pinned release, then runs the installer):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SensitiveWebUser/Sandbox-Claude-Code/main/install-remote.sh | bash
+```
+
+Prefer to look before you leap? Download it, read it, then run it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SensitiveWebUser/Sandbox-Claude-Code/main/install-remote.sh -o install-remote.sh
+less install-remote.sh && bash install-remote.sh
+```
+
+Or from a clone:
+
 ```bash
 cd path/to/these/files
-./install.sh      # copies build files to ~/.scc and the launcher to ~/.local/bin/scc
+./install.sh      # copies build files + lib/ to ~/.scc and the launcher to ~/.local/bin/scc
 scc rebuild       # build the image (a few minutes the first time)
 scc login         # one-time browser login, then /exit
 ```

@@ -14,9 +14,24 @@ scc_build() {
   docker build --pull -t "$IMAGE" "$SCC_BUILD_DIR"
 }
 
-# Build the image only if it isn't present yet.
+# Make sure $IMAGE is available locally.
+#   * already present            -> nothing to do
+#   * namespaced/registry image  -> pull it (e.g. ghcr.io/owner/scc:tag),
+#                                   falling back to a local build if the pull
+#                                   fails but a Dockerfile is available
+#   * bare local tag (scc:latest)-> build it
+# The "*/*" heuristic means a bare registry name (e.g. "ubuntu") would be built
+# rather than pulled — irrelevant here, since scc images are always namespaced.
 scc_ensure_image() {
-  docker image inspect "$IMAGE" >/dev/null 2>&1 || scc_build
+  docker image inspect "$IMAGE" >/dev/null 2>&1 && return 0
+  if [[ "$IMAGE" == */* ]]; then
+    scc_info "pulling image $IMAGE ..."
+    docker pull "$IMAGE" && return 0
+    [[ -f "$SCC_BUILD_DIR/Dockerfile" ]] \
+      || scc_die "could not pull $IMAGE and no Dockerfile to build from"
+    scc_warn "pull failed; building $IMAGE locally instead"
+  fi
+  scc_build
 }
 
 # Common, hardened args into the global ARGS array. $1 = firewall|open.

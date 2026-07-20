@@ -34,6 +34,7 @@ RUN printf 'Acquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\nAcquire::
         ca-certificates curl git openssh-client \
         jq less nano procps ripgrep unzip \
         gosu iptables ipset dnsutils \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && gosu nobody true
 
@@ -44,17 +45,19 @@ ENV HOME=/home/node \
     PATH=/home/node/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     IS_SANDBOX=1
 
-# Install Claude Code with the official native installer, as non-root.
+# Install Claude Code with the official native installer, as non-root, and seed
+# onboarding state so a fresh home volume skips first-run setup. Done in one
+# layer with cleanup so installer scratch files don't bloat the image.
 # WORKDIR must be a small directory: running the installer from / makes it
 # scan the whole filesystem and get OOM-killed inside containers.
 USER node
 WORKDIR /tmp
 RUN curl -fsSL https://claude.ai/install.sh | bash \
-    && claude --version
-
-# Seed onboarding state so a fresh home volume skips first-run setup.
-RUN printf '{"hasCompletedOnboarding": true}\n' > /home/node/.claude.json \
-    && mkdir -p /home/node/.claude
+    && claude --version \
+    && printf '{"hasCompletedOnboarding": true}\n' > /home/node/.claude.json \
+    && mkdir -p /home/node/.claude \
+    && rm -rf /home/node/.cache /home/node/.npm \
+    && { find /tmp -mindepth 1 -delete 2>/dev/null || true; }
 
 USER root
 COPY --chmod=755 entrypoint.sh init-firewall.sh /usr/local/bin/
