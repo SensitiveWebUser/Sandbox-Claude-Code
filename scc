@@ -6,13 +6,10 @@
 # NOTICE: independent, UNOFFICIAL project — not affiliated with Anthropic and
 # does not own or control Claude Code. It runs Anthropic's official CLI unmodified.
 #
-# This is a thin dispatcher: it locates its lib/, loads config, checks the OS,
-# and routes to a subcommand. The hardened `docker run` assembly lives in
-# lib/docker.sh; the in-container setup lives in entrypoint.sh.
-#
-# The resolved settings below (IMAGE, VOLUME, PIDS_LIMIT, EXTRA_*, SCC_BUILD_DIR)
-# are consumed by the sourced lib/ modules, not by this file directly, so
-# shellcheck cannot see their use across the dynamic `source` — silence SC2034.
+# Thin dispatcher: locate lib/, load config, guard OS, route to a subcommand.
+# Run assembly is in lib/docker.sh; in-container setup in entrypoint.sh.
+# Resolved settings below are consumed by sourced modules, invisible to
+# shellcheck across the dynamic source — silence SC2034.
 # shellcheck disable=SC2034
 set -euo pipefail
 

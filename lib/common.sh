@@ -37,9 +37,8 @@ scc_require_docker() {
     || scc_die "docker not found. On Arch: sudo pacman -S docker docker-buildx"
 }
 
-# Refuse unsupported operating systems. Linux is supported; macOS is allowed
-# but untested (Docker Desktop remaps UIDs differently); native Windows shells
-# are refused with a pointer to WSL2. Override with SCC_SKIP_OS_CHECK=1.
+# Refuse unsupported OSes: Linux ok; macOS allowed but untested; native Windows
+# refused (use WSL2). Override with SCC_SKIP_OS_CHECK=1.
 scc_guard_os() {
   [[ "${SCC_SKIP_OS_CHECK:-0}" == "1" ]] && return 0
   case "$(uname -s)" in

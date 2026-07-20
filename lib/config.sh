@@ -1,14 +1,9 @@
 # shellcheck shell=bash
 # scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/config.sh — global config file (key = value).
-#
-# The file is parsed with a FIXED key allowlist and is NEVER sourced or eval'd,
-# so a config file can only set known values — it cannot execute code.
-#
-# Precedence (later wins):
-#   built-in defaults < global config file < environment variables < CLI flags
-# (CLI flags are applied by the dispatcher after resolution.)
+# lib/config.sh — global config (key = value). Parsed with a fixed allowlist and
+# never sourced/eval'd, so it can set only known values, never run code.
+# Precedence (later wins): defaults < config file < env vars < CLI flags.
 
 SCC_CONFIG_FILE="${SCC_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/scc/config}"
 

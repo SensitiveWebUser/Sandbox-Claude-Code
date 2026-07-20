@@ -33,3 +33,12 @@ jobs:
 
       - name: Docker build smoke test
         run: docker build -t scc:ci .
+
+      # CI otherwise only builds the image; this actually runs it so the
+      # created 'node' user, the entrypoint UID-remap, and the Claude binary
+      # (proving no Node runtime is needed) are all exercised.
+      - name: Runtime smoke test
+        run: docker run --rm -e HOST_UID=1000 -e HOST_GID=1000 scc:ci claude --version
+
+      - name: Report image size
+        run: docker images scc:ci --format 'scc:ci image size = {{.Size}}'

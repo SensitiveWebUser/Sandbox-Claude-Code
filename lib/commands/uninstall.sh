@@ -1,12 +1,8 @@
 # shellcheck shell=bash
 # scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# lib/commands/uninstall.sh — cleanly remove scc.
-#
-# Safe by default: removes only the launcher and build dir, and prints exactly
-# what it will do before doing it. Credentials (the home volume), the image,
-# and your config are only removed when explicitly requested.
-#
-# SCC_DIR / VOLUME / IMAGE / SCC_CONFIG_FILE are set by the dispatcher + config.
+# lib/commands/uninstall.sh — remove scc. Safe by default: only the launcher and
+# build dir; config/volume/image removed only when explicitly requested.
+# SCC_DIR/VOLUME/IMAGE/SCC_CONFIG_FILE come from the dispatcher — hence SC2154.
 # shellcheck disable=SC2154
 
 cmd_uninstall() {

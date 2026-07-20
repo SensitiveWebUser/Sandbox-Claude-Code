@@ -1,10 +1,9 @@
 # shellcheck shell=bash
 # scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/docker.sh — assemble the hardened `docker run` argument list and run it.
-#
-# These functions read globals the dispatcher (scc) sets before calling them:
-#   IMAGE, VOLUME, PIDS_LIMIT, EXTRA_DOMAINS, EXTRA_DOCKER_ARGS, SCC_BUILD_DIR
+# lib/docker.sh — assemble the hardened `docker run` args and run it.
+# Reads globals set by the dispatcher (IMAGE, VOLUME, PIDS_LIMIT, EXTRA_*,
+# SCC_BUILD_DIR) — hence SC2154 is silenced.
 # shellcheck disable=SC2154
 
 # Build the image from the resolved build context.
@@ -14,14 +13,8 @@ scc_build() {
   docker build --pull -t "$IMAGE" "$SCC_BUILD_DIR"
 }
 
-# Make sure $IMAGE is available locally.
-#   * already present            -> nothing to do
-#   * namespaced/registry image  -> pull it (e.g. ghcr.io/owner/scc:tag),
-#                                   falling back to a local build if the pull
-#                                   fails but a Dockerfile is available
-#   * bare local tag (scc:latest)-> build it
-# The "*/*" heuristic means a bare registry name (e.g. "ubuntu") would be built
-# rather than pulled — irrelevant here, since scc images are always namespaced.
+# Ensure $IMAGE is available: present -> noop; namespaced (a/b) -> pull (fall
+# back to build); bare tag (scc:latest) -> build.
 scc_ensure_image() {
   docker image inspect "$IMAGE" >/dev/null 2>&1 && return 0
   if [[ "$IMAGE" == */* ]]; then
@@ -67,8 +60,8 @@ scc_workspace_args() {
   if [[ -f "$HOME/.gitconfig" ]]; then
     ARGS+=(-v "$HOME/.gitconfig:/home/node/.gitconfig:ro")
   fi
-  # No signing keys are mounted, so disable commit signing to keep commits from
-  # failing for users who sign by default. (Opt-in signing arrives in M2.)
+  # No signing keys in the sandbox: disable signing so signed-by-default commits
+  # don't fail. (Opt-in signing: M2.)
   ARGS+=(-e GIT_CONFIG_COUNT=1
          -e GIT_CONFIG_KEY_0=commit.gpgsign -e GIT_CONFIG_VALUE_0=false)
 }

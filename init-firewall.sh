@@ -1,19 +1,11 @@
 #!/bin/bash
 # scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# scc egress firewall — default-deny with a small allowlist.
-# Runs as root from the entrypoint, before privileges are dropped.
-# Requires NET_ADMIN + NET_RAW; the `scc` launcher adds these automatically
-# whenever the firewall is enabled.
-#
-# Allowed egress:
-#   * DNS, only to the resolvers configured in /etc/resolv.conf
-#   * GitHub (its published IP ranges from api.github.com/meta)
-#   * Anthropic/Claude endpoints, npm registry, PyPI
-#   * anything in FIREWALL_EXTRA_DOMAINS (comma-separated)
-#
-# Known limits: domains are resolved to IPs once at container start, so CDN
-# rotation can break an allowed host mid-session (restart the container to
-# refresh), and DNS to the configured resolvers remains a narrow side channel.
+# scc egress firewall — default-deny with a small allowlist. Runs as root from
+# the entrypoint (needs NET_ADMIN+NET_RAW, added by the launcher when enabled).
+# Allows: DNS to resolv.conf resolvers, GitHub IP ranges, Anthropic/Claude, npm,
+# PyPI, and FIREWALL_EXTRA_DOMAINS.
+# Limits: IPs are resolved once at start (CDN rotation can break a host mid-
+# session — restart to refresh), and DNS to those resolvers is a narrow channel.
 set -euo pipefail
 
 ALLOWED_DOMAINS="api.anthropic.com claude.ai statsig.anthropic.com statsig.com sentry.io registry.npmjs.org pypi.org files.pythonhosted.org"

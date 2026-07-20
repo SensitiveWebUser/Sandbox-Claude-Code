@@ -42,10 +42,9 @@ fi
 need curl
 need tar
 
-# Whenever we build the URL from SCC_REPO (i.e. no explicit SCC_TARBALL_URL),
-# the repo MUST be configured — for BOTH the latest and pinned-version paths.
-# Otherwise a pinned SCC_VERSION with the default placeholder would fetch and
-# execute install.sh from github.com/OWNER/REPO, a name anyone can register.
+# Require a configured repo whenever the URL is built from SCC_REPO (both the
+# latest and pinned paths) — else the placeholder could fetch+run install.sh
+# from an unowned github.com/OWNER/REPO. Security-critical.
 if [[ -z "${SCC_TARBALL_URL:-}" && "$SCC_REPO" == "OWNER/REPO" ]]; then
   die "no repo configured — set SCC_REPO=owner/repo (or SCC_TARBALL_URL)"
 fi
@@ -77,10 +76,8 @@ fi
 
 tar -xzf "$TMP/scc.tar.gz" -C "$TMP" || die "could not extract tarball"
 
-# Find install.sh in the extracted tree. Accept both the GitHub layout
-# (<repo>-<tag>/install.sh, depth 2) and a flat tarball (depth 1, handy for
-# local file:// testing). `sort` makes the pick deterministic; `|| true` keeps
-# a SIGPIPE from `head` closing the pipe from tripping set -e/pipefail.
+# Find install.sh: GitHub layout (depth 2) or flat tarball (depth 1). `sort` for
+# determinism; `|| true` so head's SIGPIPE doesn't trip set -e/pipefail.
 INSTALLER="$(find "$TMP" -mindepth 1 -maxdepth 2 -name install.sh -type f | sort | head -n1 || true)"
 [[ -n "$INSTALLER" ]] || die "install.sh not found inside the tarball"
 
