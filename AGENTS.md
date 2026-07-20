@@ -59,6 +59,16 @@ These encode the entire reason the project exists. You MUST NOT relax any of the
 7.1. Docs MUST NOT overstate the sandbox. Keep the "container, not a VM; shared kernel; `yolo` is bounded, not neutralized" framing. When you add a boundary, document its limits in the same breath.
 7.2. When behavior changes, update `README.md`, `CLAUDE.md`, and any `--help` text in the **same** change. Docs drifting from behavior is a defect.
 
-## 8. Definition of done
+## 8. Comments
 
-A change is done only when **all** hold: happy path still zero-config (§1); no security invariant weakened without justification + test (§3); `shellcheck` clean and tests pass (§4); licensing/attribution intact (§5, §6); docs updated (§7). If any is unmet, it is not done — say so plainly rather than claiming completion.
+Comments are a cost; write them only when they earn their place, and keep them tight.
+
+8.1. **File headers stay.** Every source file keeps its short header: the `# scc — source-available …` notice line and one line naming the file's job.
+8.2. **Explain WHY, not WHAT.** Comment only the non-obvious — rationale, a safety/security reason, a gotcha, a `# shellcheck disable` justification. Never narrate what the code plainly says.
+8.3. **Be brief.** Prefer one line; if a comment runs past ~2 lines, cut it or move it to docs. No ASCII section banners, no essays.
+8.4. **Keep useful examples.** Concrete usage examples (env vars, command lines, config snippets — as in `help` and `install-remote.sh`) earn their space; keep them.
+8.5. **No commented-out code**, and don't restate the README/AGENTS at length — link instead.
+
+## 9. Definition of done
+
+A change is done only when **all** hold: happy path still zero-config (§1); no security invariant weakened without justification + test (§3); `shellcheck` clean and tests pass (§4); licensing/attribution intact (§5, §6); docs updated (§7); comments meet §8. If any is unmet, it is not done — say so plainly rather than claiming completion.
