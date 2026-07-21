@@ -8,6 +8,12 @@ if [[ "${1:-}" == "image" && "${2:-}" == "inspect" ]]; then
   exit 0
 fi
 
+# `volume ls`: return a couple of fake profiles for the profiles command test.
+if [[ "${1:-}" == "volume" && "${2:-}" == "ls" ]]; then
+  printf '%s\n' scc-home scc-home-work other-volume
+  exit 0
+fi
+
 : "${SCC_DOCKER_LOG:?SCC_DOCKER_LOG must be set}"
 printf '%s\n' "$@" > "$SCC_DOCKER_LOG"
 exit 0

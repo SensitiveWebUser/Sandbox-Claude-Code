@@ -6,6 +6,7 @@
 
 cmd_shell() {
   scc_take_flags "$@"
+  scc_apply_toolchains
   local def=off; [ "$SCC_HARDENED" = 1 ] && def=on
   scc_run_in_workspace "$(scc_firewall_mode "$def")" bash
 }

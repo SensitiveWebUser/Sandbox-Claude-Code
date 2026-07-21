@@ -57,7 +57,7 @@ scc login         # one-time browser login, then /exit
 | `scc update` | Jump to the newest Claude Code release immediately |
 | `scc rebuild` | Rebuild the image (fresh base OS; also re-pulls the base image) |
 
-The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `uninstall`, `help`) are reserved; everything else is passed straight to `claude`.
+The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `uninstall`, `help`) are reserved; everything else is passed straight to `claude`.
 
 ## The egress firewall
 
@@ -80,6 +80,32 @@ It makes the container's root filesystem **read-only** (only your repo, the home
 By default the sandbox holds no keys, so commit signing is disabled and pushing is not authenticated. `scc --ssh-agent` forwards your **SSH agent** into the container so in-sandbox git can sign commits and push. Your private key never enters the sandbox; the agent, running on the host, performs the signing. If SSH commit signing is configured, only your **public** signing key is mounted. Requires a running agent (check with `ssh-add -l`). Off by default; it announces itself when active and fails with a clear message if no agent is present. (Named for what it does: plain git already works in the sandbox without it.)
 
 GitHub CLI support (a host `gh` token passed in as `GH_TOKEN`) is planned as an opt-in toolchain layer.
+
+## Language toolchains
+
+The base image is deliberately slim (no language runtimes beyond what Claude Code needs). Add them per run with `--with`, as opt-in layers built on top of the base:
+
+```bash
+scc --with python,rust "port this module"
+scc --with node "debug the test runner"
+```
+
+Known toolchains: `go`, `node`, `python`, `rust`. The first `--with` for a given combination builds a layered image (`scc:tc-<combo>`) and caches it; later runs reuse it instantly. Toolchains install into system paths, so they are not shadowed by the home volume. Set a default in the config file with `toolchains = python`.
+
+(Note: on Debian, `pip install` into the system Python is refused by PEP 668; use a virtualenv, which is why `python3-venv` is included.)
+
+## Profiles
+
+Each login and Claude Code install lives in a Docker home volume, `scc-home` by default. `--profile NAME` switches to a separate one (`scc-home-NAME`), so you can keep, for example, work and personal logins apart:
+
+```bash
+scc --profile work login         # log in on the 'work' profile
+scc --profile work "fix tests"   # run against it
+scc profiles                     # list profiles (the active one is marked)
+docker volume rm scc-home-work   # reset a profile
+```
+
+`--profile` is a global flag: put it before the subcommand, since it applies to every command including `login`. You can also set a default profile in the config file (`profile = work`).
 
 ## Configuration file
 

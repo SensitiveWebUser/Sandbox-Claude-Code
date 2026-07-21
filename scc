@@ -27,15 +27,31 @@ if [[ -f "$SCC_SELF/Dockerfile" ]]; then SCC_BUILD_DIR="$SCC_SELF"; else SCC_BUI
 
 # Load modules, then every subcommand.
 # shellcheck disable=SC1090,SC1091
-for _m in ui common config firewall docker; do . "$SCC_LIB/$_m.sh"; done
+for _m in ui common config firewall docker toolchains; do . "$SCC_LIB/$_m.sh"; done
 # shellcheck disable=SC1090,SC1091
 for _c in "$SCC_LIB"/commands/*.sh; do . "$_c"; done
 unset _m _c
 
 # Resolve settings: built-in defaults < config file < environment.
 scc_config_load
+
+# A leading global --profile NAME selects a separate home volume (so it is
+# resolved before VOLUME) and applies to every subcommand, including login.
+# Env/config give the default; a leading flag overrides.
+SCC_PROFILE="$(scc_resolve profile SCC_PROFILE "")"
+while true; do
+  case "${1:-}" in
+    --profile)   shift; [ $# -gt 0 ] || scc_die "--profile needs a name"; SCC_PROFILE="$1"; shift ;;
+    --profile=*) SCC_PROFILE="${1#*=}"; shift ;;
+    *)           break ;;
+  esac
+done
+if [[ -n "$SCC_PROFILE" && ! "$SCC_PROFILE" =~ ^[A-Za-z0-9_-]+$ ]]; then
+  scc_die "invalid profile name '$SCC_PROFILE' (letters, digits, - and _ only)"
+fi
+
 IMAGE="$(scc_resolve image SCC_IMAGE "scc:latest")"
-VOLUME="$(scc_resolve volume SCC_VOLUME "scc-home")"
+VOLUME="$(scc_resolve volume SCC_VOLUME "scc-home${SCC_PROFILE:+-$SCC_PROFILE}")"
 PIDS_LIMIT="$(scc_resolve pids_limit SCC_PIDS_LIMIT "2048")"
 EXTRA_DOMAINS="$(scc_resolve extra_domains FIREWALL_EXTRA_DOMAINS "")"
 EXTRA_DOCKER_ARGS="$(scc_resolve docker_args SCC_DOCKER_ARGS "")"
@@ -58,6 +74,7 @@ esac
 scc_require_docker
 
 case "$cmd" in
+  profiles)       cmd_profiles ;;
   rebuild|build)  cmd_rebuild ;;
   update)         cmd_update ;;
   login)          cmd_login ;;
