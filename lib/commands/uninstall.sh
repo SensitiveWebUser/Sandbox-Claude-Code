@@ -1,8 +1,8 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# lib/commands/uninstall.sh — remove scc. Safe by default: only the launcher and
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# lib/commands/uninstall.sh: remove scc. Safe by default: only the launcher and
 # build dir; config/volume/image removed only when explicitly requested.
-# SCC_DIR/VOLUME/IMAGE/SCC_CONFIG_FILE come from the dispatcher — hence SC2154.
+# SCC_DIR/VOLUME/IMAGE/SCC_CONFIG_FILE come from the dispatcher, hence SC2154.
 # shellcheck disable=SC2154
 
 cmd_uninstall() {
@@ -22,7 +22,7 @@ cmd_uninstall() {
       -y|--yes)  assume_yes=1 ;;
       -h|--help)
         cat <<'EOF'
-scc uninstall — remove scc from this machine
+scc uninstall: remove scc from this machine
 
   scc uninstall            Remove the launcher and build dir (~/.scc)
   scc uninstall --config   Also remove the config file
@@ -37,15 +37,15 @@ EOF
     shift
   done
 
-  scc_heading "scc uninstall — the following will be removed:"
+  scc_heading "scc uninstall: the following will be removed:"
   if [[ -e "$launcher" ]]; then
     echo "  launcher:  $launcher"
   else
-    scc_warn "launcher not found (looked for $launcher) — if installed to a custom path, remove it manually"
+    scc_warn "launcher not found (looked for $launcher); if installed to a custom path, remove it manually"
   fi
   [[ -d "$SCC_DIR" ]]          && echo "  build dir: $SCC_DIR"
   if (( rm_config )); then [[ -e "$SCC_CONFIG_FILE" ]] && echo "  config:    $SCC_CONFIG_FILE"; fi
-  if (( rm_volume )); then echo "  volume:    $VOLUME  (your login + Claude Code install — you will need to log in again)"; fi
+  if (( rm_volume )); then echo "  volume:    $VOLUME  (your login + Claude Code install; you will need to log in again)"; fi
   if (( rm_image ));  then echo "  image:     $IMAGE"; fi
   echo
   scc_dim "Kept unless requested: config (--config), home volume (--volume), image (--image)."
@@ -72,7 +72,7 @@ EOF
       (( rm_image ))  && docker image  rm "$IMAGE"  >/dev/null 2>&1 \
         && scc_info "removed image $IMAGE"
     else
-      scc_warn "docker not found — skipped removing the volume/image."
+      scc_warn "docker not found: skipped removing the volume/image."
     fi
   fi
 

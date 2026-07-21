@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 # install-remote.sh: downloads a tarball (here a local file://) and hands off
 # to the repo's install.sh. Covers GitHub-style and flat tarball layouts, and
 # the unconfigured-repo safety guard.

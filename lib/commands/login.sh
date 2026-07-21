@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# lib/commands/login.sh — one-time browser login (persists in the home volume).
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# lib/commands/login.sh: one-time browser login (persists in the home volume).
 #
 # Uses host networking so Claude Code's localhost OAuth callback works.
 # IMAGE / VOLUME / ARGS are set by the dispatcher + scc_base_args.

@@ -1,6 +1,6 @@
 # Contributor License Agreement (CLA)
 
-> **Why this exists.** `scc` is released under the [PolyForm Noncommercial License](./LICENSE): everyone may use it freely for noncommercial purposes, and the copyright holder ("the Project Owner") retains the exclusive right to license it commercially. For that to hold, the Project Owner must receive rights to your contributions that are at least as broad as the rights they hold in the rest of the project. This agreement grants exactly that — you keep ownership of your work; the Project Owner gains the freedom to use it, including commercially.
+> **Why this exists.** `scc` is released under the [PolyForm Noncommercial License](./LICENSE): everyone may use it freely for noncommercial purposes, and the copyright holder ("the Project Owner") retains the exclusive right to license it commercially. For that to hold, the Project Owner must receive rights to your contributions that are at least as broad as the rights they hold in the rest of the project. This agreement grants exactly that: you keep ownership of your work; the Project Owner gains the freedom to use it, including commercially.
 >
 > **Not legal advice.** This is a plain-language template, not a lawyer-reviewed instrument. Have counsel review it before relying on it commercially.
 
@@ -8,7 +8,7 @@ By submitting a contribution (a pull request, patch, or any other work) to this 
 
 ## 1. Definitions
 
-- **"Contribution"** means any original work of authorship — code, documentation, configuration, or other material — that you intentionally submit to this project for inclusion.
+- **"Contribution"** means any original work of authorship (code, documentation, configuration, or other material) that you intentionally submit to this project for inclusion.
 - **"Project Owner"** means the copyright holder named in the `Required Notice` line of the [LICENSE](./LICENSE) file.
 
 ## 2. Copyright license

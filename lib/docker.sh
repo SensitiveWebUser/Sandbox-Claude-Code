@@ -1,15 +1,15 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/docker.sh — assemble the hardened `docker run` args and run it.
+# lib/docker.sh: assemble the hardened `docker run` args and run it.
 # Reads globals set by the dispatcher (IMAGE, VOLUME, PIDS_LIMIT, EXTRA_*,
-# SCC_BUILD_DIR) — hence SC2154 is silenced.
+# SCC_BUILD_DIR), hence SC2154 is silenced.
 # shellcheck disable=SC2154
 
 # Build the image from the resolved build context.
 scc_build() {
   [[ -f "$SCC_BUILD_DIR/Dockerfile" ]] \
-    || scc_die "no Dockerfile in $SCC_BUILD_DIR — run install.sh or set SCC_DIR"
+    || scc_die "no Dockerfile in $SCC_BUILD_DIR: run install.sh or set SCC_DIR"
   docker build --pull -t "$IMAGE" "$SCC_BUILD_DIR"
 }
 

@@ -1,9 +1,9 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# lib/commands/help.sh — usage text.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# lib/commands/help.sh: usage text.
 
 cmd_help() {
-  scc_heading "scc — run Claude Code inside an isolated Docker sandbox"
+  scc_heading "scc: run Claude Code inside an isolated Docker sandbox"
   cat <<'EOF'
 
 From inside a project directory:

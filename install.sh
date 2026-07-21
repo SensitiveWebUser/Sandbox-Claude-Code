@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 # Installer for scc (sandboxed Claude Code).
 # Copies the image build files + lib/ to ~/.scc and the launcher to ~/.local/bin/scc.
 set -euo pipefail

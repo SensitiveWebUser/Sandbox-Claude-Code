@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
 # Remote bootstrap installer:
 #
@@ -15,7 +15,7 @@
 #   SCC_REPO=owner/repo     GitHub repo to install from (default below)
 #   SCC_VERSION=v1.2.3       Tag to install (default: latest release)
 #   SCC_SHA256=<hex>         If set, verify the tarball's sha256. NOTE: GitHub
-#                            source archives are NOT byte-stable over time — pin
+#                            source archives are NOT byte-stable over time: pin
 #                            a checksum only against a fixed SCC_TARBALL_URL
 #                            (e.g. an uploaded release asset), not the default.
 #   SCC_TARBALL_URL=<url>    Fetch the tarball from here instead (also enables
@@ -43,10 +43,10 @@ need curl
 need tar
 
 # Require a configured repo whenever the URL is built from SCC_REPO (both the
-# latest and pinned paths) — else the placeholder could fetch+run install.sh
+# latest and pinned paths); else the placeholder could fetch+run install.sh
 # from an unowned github.com/OWNER/REPO. Security-critical.
 if [[ -z "${SCC_TARBALL_URL:-}" && "$SCC_REPO" == "OWNER/REPO" ]]; then
-  die "no repo configured — set SCC_REPO=owner/repo (or SCC_TARBALL_URL)"
+  die "no repo configured: set SCC_REPO=owner/repo (or SCC_TARBALL_URL)"
 fi
 
 # Resolve "latest" to a concrete tag via the GitHub API (no jq dependency).
@@ -71,7 +71,7 @@ if [[ -n "${SCC_SHA256:-}" ]]; then
   need sha256sum
   say "verifying checksum"
   printf '%s  %s\n' "$SCC_SHA256" "$TMP/scc.tar.gz" | sha256sum -c - \
-    || die "checksum mismatch — refusing to install"
+    || die "checksum mismatch: refusing to install"
 fi
 
 tar -xzf "$TMP/scc.tar.gz" -C "$TMP" || die "could not extract tarball"

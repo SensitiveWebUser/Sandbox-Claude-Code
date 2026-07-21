@@ -1,7 +1,7 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/firewall.sh — decide whether the egress firewall is on for a run.
+# lib/firewall.sh: decide whether the egress firewall is on for a run.
 
 # scc_firewall_mode <default>   where default = on|off
 # Echoes "firewall" or "open". Resolves the firewall setting from env/config

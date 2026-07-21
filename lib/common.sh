@@ -1,7 +1,7 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/common.sh — small shared helpers. Sourcing has no side effects.
+# lib/common.sh: small shared helpers. Sourcing has no side effects.
 
 # Abort with a message.
 scc_die() { scc_err "$*"; exit 1; }
@@ -44,7 +44,7 @@ scc_guard_os() {
   case "$(uname -s)" in
     Linux) return 0 ;;
     Darwin)
-      scc_warn "macOS is not officially supported or tested — Docker Desktop remaps"
+      scc_warn "macOS is not officially supported or tested. Docker Desktop remaps"
       scc_warn "UIDs differently, so file ownership may be wrong. Proceeding anyway."
       scc_warn "Silence this with SCC_SKIP_OS_CHECK=1."
       return 0 ;;
@@ -75,7 +75,7 @@ scc_guard_workdir() {
   [[ "${SCC_ALLOW_ANY_DIR:-0}" == "1" ]] && return 0
   case "$PWD" in
     "$HOME"|/)
-      scc_die "refusing to mount $PWD into the sandbox — cd into a project first (override: SCC_ALLOW_ANY_DIR=1)"
+      scc_die "refusing to mount $PWD into the sandbox: cd into a project first (override: SCC_ALLOW_ANY_DIR=1)"
       ;;
   esac
 }

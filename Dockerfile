@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# scc — sandboxed Claude Code
+# scc: sandboxed Claude Code
 # Source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
 # NOTICE: scc is an INDEPENDENT, UNOFFICIAL project. It is NOT affiliated with,
@@ -11,13 +11,13 @@
 #
 # Add tools (compilers, python, ...) to the apt line below, then `scc rebuild`.
 
-# Debian slim, not node:22 — Claude Code's installer fetches a self-contained
+# Debian slim, not node:22: Claude Code's installer fetches a self-contained
 # native binary, so no Node.js runtime is needed (that's the size win).
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# apt config: retry fetches and disable HTTP pipelining — robust against flaky
+# apt config: retry fetches and disable HTTP pipelining, robust against flaky
 # CDNs/proxies/VM NAT ("Ign ... Remote end closed connection").
 # libstdc++6/libgcc-s1: the native binary links them; explicit so the slim base
 # is guaranteed to carry them. bind9-dnsutils provides dig (dnsutils is transitional).
@@ -47,7 +47,7 @@ ENV HOME=/home/node \
     IS_SANDBOX=1
 
 # Install Claude Code (non-root), seed onboarding so a fresh volume skips
-# first-run setup, and clean scratch in-layer. WORKDIR must be small — from /
+# first-run setup, and clean scratch in-layer. WORKDIR must be small: from /
 # the installer scans the whole FS and gets OOM-killed in containers.
 USER node
 WORKDIR /tmp

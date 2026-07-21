@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# scc — sandboxed Claude Code
+# scc: sandboxed Claude Code
 # Source-available under PolyForm Noncommercial 1.0.0 (see LICENSE):
 # free for noncommercial use; commercial use needs a separate license.
 #
-# NOTICE: independent, UNOFFICIAL project — not affiliated with Anthropic and
+# NOTICE: independent, UNOFFICIAL project, not affiliated with Anthropic and
 # does not own or control Claude Code. It runs Anthropic's official CLI unmodified.
 #
 # Thin dispatcher: locate lib/, load config, guard OS, route to a subcommand.
 # Run assembly is in lib/docker.sh; in-container setup in entrypoint.sh.
 # Resolved settings below are consumed by the sourced modules, so a static
-# check can't see their use across the dynamic source — silence SC2034.
+# check can't see their use across the dynamic source: silence SC2034.
 # shellcheck disable=SC2034
 set -euo pipefail
 

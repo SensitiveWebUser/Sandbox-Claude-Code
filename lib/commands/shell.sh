@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# lib/commands/shell.sh — a plain shell inside the sandbox (debugging).
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# lib/commands/shell.sh: a plain shell inside the sandbox (debugging).
 # SCC_HARDENED is set by scc_take_flags.
 # shellcheck disable=SC2154
 

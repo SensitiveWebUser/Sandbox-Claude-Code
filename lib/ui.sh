@@ -1,7 +1,7 @@
 # shellcheck shell=bash
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
 #
-# lib/ui.sh — pure-Bash rich-CLI helpers (zero deps). Honors NO_COLOR/non-tty.
+# lib/ui.sh: pure-Bash rich-CLI helpers (zero deps). Honors NO_COLOR/non-tty.
 # gum/fzf are used only if present, never required.
 
 if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then

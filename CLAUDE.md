@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Read this with [AGENTS.md](./AGENTS.md).** This file is the *what and why* — vision, architecture, roadmap. `AGENTS.md` is the *how* — the strict, non-negotiable rules for building it. When they appear to conflict, `AGENTS.md` wins.
+> **Read this with [AGENTS.md](./AGENTS.md).** This file is the *what and why*: vision, architecture, roadmap. `AGENTS.md` is the *how*: the strict, non-negotiable rules for building it. When they appear to conflict, `AGENTS.md` wins.
 
 ## What this is
 
-`scc` ("sandboxed Claude Code") runs Claude Code inside an isolated Docker container with **only the current directory** mounted. `cd` into a repo, type `scc`, and an agent runs against that repo and nothing else on your machine. The project today is a small set of shell/Docker files — there is no application code, no compiled artifacts, no test suite yet. Work here is edits to shell scripts, a Dockerfile, and docs.
+`scc` ("sandboxed Claude Code") runs Claude Code inside an isolated Docker container with **only the current directory** mounted. `cd` into a repo, type `scc`, and an agent runs against that repo and nothing else on your machine. The project today is a small set of shell/Docker files: there is no application code, no compiled artifacts, no test suite yet. Work here is edits to shell scripts, a Dockerfile, and docs.
 
 ## Project vision
 
@@ -19,13 +19,13 @@ Supporting principles: **modular** (small pieces with clear seams, so features l
 
 ## Licensing (source-available, not OSI-"open")
 
-`scc` is under the **[PolyForm Noncommercial License 1.0.0](./LICENSE)** plus a **[CLA](./CLA.md)**. Anyone may use, modify, and share it for noncommercial purposes; only the copyright holder may commercialize it. This is deliberately **source-available, not "open source"** in the OSI sense — never describe it as "open source" or "OSI-approved" in code, docs, or commit messages. Say **"source-available"** or **"free for noncommercial use."** Every new distributable file that carries a header should carry the noncommercial notice (see `AGENTS.md`).
+`scc` is under the **[PolyForm Noncommercial License 1.0.0](./LICENSE)** plus a **[CLA](./CLA.md)**. Anyone may use, modify, and share it for noncommercial purposes; only the copyright holder may commercialize it. This is deliberately **source-available, not "open source"** in the OSI sense: never describe it as "open source" or "OSI-approved" in code, docs, or commit messages. Say **"source-available"** or **"free for noncommercial use."** Every new distributable file that carries a header should carry the noncommercial notice (see `AGENTS.md`).
 
 ## Not affiliated with Anthropic
 
-This project is an **independent, unofficial** wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime from Anthropic's own installer. "Claude" and "Claude Code" are Anthropic's. This disclaimer must remain visible in the README, the Dockerfile, and the launcher — do not remove it.
+This project is an **independent, unofficial** wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime from Anthropic's own installer. "Claude" and "Claude Code" are Anthropic's. This disclaimer must remain visible in the README, the Dockerfile, and the launcher. Do not remove it.
 
-## Architecture — the artifacts and how they relate
+## Architecture: the artifacts and how they relate
 
 The launcher is **modular pure Bash** (no runtime deps), split so features land without touching the core. Chosen over a Go rewrite because zero-install "download and run" *is* the product's simplicity promise. Revisit only if Bash becomes the bottleneck for correctness.
 
@@ -50,21 +50,21 @@ Control flow: `scc <cmd>` → source `lib/` + `commands/` → `scc_config_load` 
 
 **Config resolution:** built-in defaults < global config file (`~/.config/scc/config`, `$SCC_CONFIG` to override) < environment variables < CLI flags. The config parser uses a fixed key allowlist and is **never** `source`d/`eval`d (see `lib/config.sh`).
 
-**Edit loop:** `scc` sources `lib/` from *next to the script* when present, so **launcher/lib edits in the repo take effect immediately** — no reinstall. Only **image** changes (Dockerfile/entrypoint/firewall) still need `./install.sh` (to copy build files to `~/.scc`) followed by `scc rebuild`.
+**Edit loop:** `scc` sources `lib/` from *next to the script* when present, so **launcher/lib edits in the repo take effect immediately**, no reinstall. Only **image** changes (Dockerfile/entrypoint/firewall) still need `./install.sh` (to copy build files to `~/.scc`) followed by `scc rebuild`.
 
 ## Roadmap (agreed feature direction)
 
 Build in roughly this order; **core hardening and testing before breadth**. Each item must land behind good defaults and stay optional. Full milestone detail lives in the plan (`/home/node/.claude/plans/snoopy-launching-haven.md`).
 
-- **✅ M0 (done): clean foundation** — modular `lib/` refactor, global config file, `bats` tests + `shellcheck` CI, OS guard. Everything below builds on this.
-1. **Public prebuilt image** — publish the base image (preferred: **GitHub Container Registry / GHCR**) so first run doesn't require a local build. Keep local build fully supported.
-2. **Image slimming** — the image is ~900 MB today; trim it (leaner base, fewer layers) without losing tools agents/firewall need.
-3. **First-class git** (opt-in `--git`) — enable in-sandbox git incl. **commit signing** by forwarding the signer (SSH-signing via `SSH_AUTH_SOCK`, or gpg-agent). Off by default; today signing is force-disabled because no keys exist in the container.
-4. **`gh` CLI, plugged in from the host** (opt-in `--gh`) — install `gh`; inject a **token only** via `gh auth token` on the host as `-e GH_TOKEN`. Never mount host `gh`/ssh config.
-5. **Language toolchain presets** — opt-in Python/Go/Rust/Node layers (`scc --with python,rust`) as layered image variants; default stays slim.
-6. **Named / persistent profiles** — multiple home volumes (`--profile work`) for separate logins/state, plus reset.
-7. **Per-project config (`.scc.conf`)** — reuses the config parser with a **restricted, security-gated** allowlist (untrusted cloned-repo input; may only tighten, never loosen; direnv-style repo-trust prompt).
-8. **`uninstall` subcommand + richer `help`** — clean removal (launcher, `~/.scc`, optionally the volume/image).
+- **✅ M0 (done): clean foundation**. Modular `lib/` refactor, global config file, `bats` tests + `shellcheck` CI, OS guard. Everything below builds on this.
+1. **Public prebuilt image**: publish the base image (preferred: **GitHub Container Registry / GHCR**) so first run doesn't require a local build. Keep local build fully supported.
+2. **Image slimming**: the image is ~900 MB today; trim it (leaner base, fewer layers) without losing tools agents/firewall need.
+3. **First-class git** (opt-in `--git`): enable in-sandbox git incl. **commit signing** by forwarding the signer (SSH-signing via `SSH_AUTH_SOCK`, or gpg-agent). Off by default; today signing is force-disabled because no keys exist in the container.
+4. **`gh` CLI, plugged in from the host** (opt-in `--gh`): install `gh`; inject a **token only** via `gh auth token` on the host as `-e GH_TOKEN`. Never mount host `gh`/ssh config.
+5. **Language toolchain presets**: opt-in Python/Go/Rust/Node layers (`scc --with python,rust`) as layered image variants; default stays slim.
+6. **Named / persistent profiles**: multiple home volumes (`--profile work`) for separate logins/state, plus reset.
+7. **Per-project config (`.scc.conf`)**: reuses the config parser with a **restricted, security-gated** allowlist (untrusted cloned-repo input; may only tighten, never loosen; direnv-style repo-trust prompt).
+8. **`uninstall` subcommand + richer `help`**: clean removal (launcher, `~/.scc`, optionally the volume/image).
 
 ## Working on this repo
 
@@ -86,8 +86,8 @@ These are the security properties the project exists to provide. `AGENTS.md` sta
 - **Only the current directory is mounted** (`-v "$PWD:$PWD"`, same absolute path), plus `~/.gitconfig` read-only and the `scc-home` volume. SSH keys, the rest of `$HOME`, and host env are deliberately not shared. `guard_workdir` refuses `$HOME` or `/`.
 - **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. `SCC_FIREWALL=1|0` overrides.
 - **Firewall fails closed**: `init-firewall.sh` runs `set -euo pipefail`, fetches GitHub ranges *before* tightening policy, ends with a positive/negative reachability check that `exit 1`s on failure, and closes IPv6 entirely. Keep the verification step.
-- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `help`) — anything else passes straight to `claude`.
+- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `help`): anything else passes straight to `claude`.
 
 ## Key env vars (all optional)
 
-`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run` — escape hatch for extra mounts/limits), `SCC_ALLOW_ANY_DIR`, `SCC_SKIP_OS_CHECK`, `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`) overrides the matching config-file key.
+`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run`, escape hatch for extra mounts/limits), `SCC_ALLOW_ANY_DIR`, `SCC_SKIP_OS_CHECK`, `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`) overrides the matching config-file key.

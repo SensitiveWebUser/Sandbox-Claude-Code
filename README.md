@@ -1,14 +1,14 @@
-# scc — sandboxed Claude Code
+# scc: sandboxed Claude Code
 
-Run Claude Code inside an isolated Docker container, from any repo, with one command. Built for plain Docker Engine on Arch Linux — no Docker Desktop, no rootless mode, no userns changes on the host.
+Run Claude Code inside an isolated Docker container, from any repo, with one command. Built for plain Docker Engine on Arch Linux: no Docker Desktop, no rootless mode, no userns changes on the host.
 
 `cd` into a project and run `scc`. That directory is bind-mounted into the container at the same absolute path and is the *only* thing on your machine the agent can see. You log in once (persisted in a Docker volume) and Claude Code keeps itself on the newest release via its official native installer's background auto-updater, which writes into that same volume.
 
-> ⚠️ **Independent project — not affiliated with Anthropic.** `scc` is an unofficial, community wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime, straight from Anthropic's own installer, and simply runs it inside a container. "Claude" and "Claude Code" are Anthropic's; your use of Claude Code is governed by Anthropic's terms, not this project's. This tool is provided as-is, with no warranty (see [License](#license)).
+> ⚠️ **Independent project, not affiliated with Anthropic.** `scc` is an unofficial, community wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime, straight from Anthropic's own installer, and simply runs it inside a container. "Claude" and "Claude Code" are Anthropic's; your use of Claude Code is governed by Anthropic's terms, not this project's. This tool is provided as-is, with no warranty (see [License](#license)).
 
 ## How it works, in one paragraph
 
-The image is `node:22-bookworm-slim` plus git and a few tools, with Claude Code installed by Anthropic's official native installer as a non-root user. A small entrypoint runs as root only long enough to remap the container user to your host UID/GID (an edit to the container's own `/etc/passwd` — host namespaces are never touched, and files the agent writes end up owned by you, not root), fix ownership of the persisted home volume, optionally raise a default-deny egress firewall, and then drop privileges with `gosu`. The launcher runs every container with `--cap-drop ALL` plus only the six capabilities the entrypoint needs, `no-new-privileges`, a PID limit (fork-bomb guard), and `--init` for signal handling and zombie reaping. There is no `sudo` in the image.
+The image is `node:22-bookworm-slim` plus git and a few tools, with Claude Code installed by Anthropic's official native installer as a non-root user. A small entrypoint runs as root only long enough to remap the container user to your host UID/GID (an edit to the container's own `/etc/passwd`; host namespaces are never touched, and files the agent writes end up owned by you, not root), fix ownership of the persisted home volume, optionally raise a default-deny egress firewall, and then drop privileges with `gosu`. The launcher runs every container with `--cap-drop ALL` plus only the six capabilities the entrypoint needs, `no-new-privileges`, a PID limit (fork-bomb guard), and `--init` for signal handling and zombie reaping. There is no `sudo` in the image.
 
 ## Requirements (Arch Linux)
 
@@ -44,7 +44,7 @@ scc rebuild       # build the image (a few minutes the first time)
 scc login         # one-time browser login, then /exit
 ```
 
-`scc login` runs the container with host networking so Claude Code's localhost OAuth callback works, and stores the resulting credentials in the `scc-home` volume. Every later run reuses them. If browser login misbehaves, run `claude setup-token` anywhere you have a browser and export the result as `CLAUDE_CODE_OAUTH_TOKEN` — `scc` passes that variable through automatically when it's set.
+`scc login` runs the container with host networking so Claude Code's localhost OAuth callback works, and stores the resulting credentials in the `scc-home` volume. Every later run reuses them. If browser login misbehaves, run `claude setup-token` anywhere you have a browser and export the result as `CLAUDE_CODE_OAUTH_TOKEN`. `scc` passes that variable through automatically when it's set.
 
 ## Daily use
 
@@ -73,11 +73,11 @@ The image already drops all Linux capabilities bar the few the entrypoint needs,
 scc --hardened "review this untrusted repo"
 ```
 
-It makes the container's root filesystem **read-only** (only your repo, the home volume, and small `tmpfs` mounts stay writable) and turns the egress firewall **on**. It's opt-in because it can restrict what an agent may write or reach. Under a read-only rootfs the entrypoint can't edit `/etc/passwd`, so it runs as your numeric host UID directly — no private keys or extra host state involved.
+It makes the container's root filesystem **read-only** (only your repo, the home volume, and small `tmpfs` mounts stay writable) and turns the egress firewall **on**. It's opt-in because it can restrict what an agent may write or reach. Under a read-only rootfs the entrypoint can't edit `/etc/passwd`, so it runs as your numeric host UID directly. No private keys or extra host state involved.
 
 ## Configuration file
 
-Everything works with zero configuration. When you want defaults that stick, drop a file at `~/.config/scc/config` (override the path with `$SCC_CONFIG`). It's a simple `key = value` file — parsed with a fixed key allowlist and never executed as code:
+Everything works with zero configuration. When you want defaults that stick, drop a file at `~/.config/scc/config` (override the path with `$SCC_CONFIG`). It's a simple `key = value` file, parsed with a fixed key allowlist and never executed as code:
 
 ```ini
 # ~/.config/scc/config
@@ -97,25 +97,25 @@ Three layers, strongest first: Claude Code's native install auto-updates in the 
 
 ## What the sandbox can and cannot touch
 
-Mounted in: the current directory (read-write, same path as on the host), your `~/.gitconfig` (read-only, so commits carry your name — commit signing is disabled inside since no keys are present), and the `scc-home` volume holding Claude's install and credentials. Passed through: `TERM`, `COLORTERM`, and `CLAUDE_CODE_OAUTH_TOKEN` if set.
+Mounted in: the current directory (read-write, same path as on the host), your `~/.gitconfig` (read-only, so commits carry your name; commit signing is disabled inside since no keys are present), and the `scc-home` volume holding Claude's install and credentials. Passed through: `TERM`, `COLORTERM`, and `CLAUDE_CODE_OAUTH_TOKEN` if set.
 
-Not shared: SSH keys, the rest of your home directory, your shell environment, host credentials of any kind. Pushing over SSH therefore won't authenticate from inside — push from the host, or use HTTPS with a scoped token via `SCC_DOCKER_ARGS="-e GH_TOKEN"`. The launcher also refuses to run from `$HOME` or `/`, since mounting those would defeat the point.
+Not shared: SSH keys, the rest of your home directory, your shell environment, host credentials of any kind. Pushing over SSH therefore won't authenticate from inside. Push from the host, or use HTTPS with a scoped token via `SCC_DOCKER_ARGS="-e GH_TOKEN"`. The launcher also refuses to run from `$HOME` or `/`, since mounting those would defeat the point.
 
 Escape hatch for anything unusual: `SCC_DOCKER_ARGS` appends raw arguments to `docker run` (extra mounts, `--memory 8g`, ports for a dev server, SSH agent forwarding if you accept the exposure).
 
 ## Troubleshooting
 
-Login never completes in the browser: make sure you used `scc login` (host networking) rather than logging in from a normal `scc` run; the fallback is `claude setup-token` plus `CLAUDE_CODE_OAUTH_TOKEN` as described above. Containers can't resolve DNS: put `{"dns": ["1.1.1.1", "9.9.9.9"]}` in `/etc/docker/daemon.json` and restart docker — a known quirk on some Arch network setups. `docker: permission denied`: you haven't re-logged-in after joining the `docker` group. Firewalled run can't reach a host it needs: add it to `FIREWALL_EXTRA_DOMAINS`. Weird terminal rendering: your terminfo may be exotic; try `TERM=xterm-256color scc`. Diagnostics from inside: `scc shell`, then `claude doctor`.
+Login never completes in the browser: make sure you used `scc login` (host networking) rather than logging in from a normal `scc` run; the fallback is `claude setup-token` plus `CLAUDE_CODE_OAUTH_TOKEN` as described above. Containers can't resolve DNS: put `{"dns": ["1.1.1.1", "9.9.9.9"]}` in `/etc/docker/daemon.json` and restart docker, a known quirk on some Arch network setups. `docker: permission denied`: you haven't re-logged-in after joining the `docker` group. Firewalled run can't reach a host it needs: add it to `FIREWALL_EXTRA_DOMAINS`. Weird terminal rendering: your terminfo may be exotic; try `TERM=xterm-256color scc`. Diagnostics from inside: `scc shell`, then `claude doctor`.
 
 ## Honest limits
 
-A container is a strong boundary for this purpose, but it is not a VM: the kernel is shared, so treat `scc` as protection against a misbehaving agent, not against a determined kernel exploit. `yolo` mode is *bounded*, not neutralized — within the mounted repo and whatever network you allow it, the agent can still do real things (edit files, commit, hit APIs), so review diffs before pushing. And the one-time login plus first build need normal network access; everything after that is fast.
+A container is a strong boundary for this purpose, but it is not a VM: the kernel is shared, so treat `scc` as protection against a misbehaving agent, not against a determined kernel exploit. `yolo` mode is *bounded*, not neutralized: within the mounted repo and whatever network you allow it, the agent can still do real things (edit files, commit, hit APIs), so review diffs before pushing. And the one-time login plus first build need normal network access; everything after that is fast.
 
 ## Development
 
 The launcher is modular pure Bash (no runtime dependencies): a thin `scc` dispatcher sourcing `lib/` (`ui`, `common`, `config`, `firewall`, `docker`) and one file per subcommand under `lib/commands/`. Running the repo's `./scc` uses that `lib/` directly, so launcher edits take effect without reinstalling; only image changes (`Dockerfile`, `entrypoint.sh`, `init-firewall.sh`) need `./install.sh && scc rebuild`.
 
-Tests are [`bats`](https://github.com/bats-core/bats-core) and stub `docker`, asserting on the assembled `docker run` argv — so the security invariants (capability set, mount set, firewall mode) are checked without a real container:
+Tests are [`bats`](https://github.com/bats-core/bats-core) and stub `docker`, asserting on the assembled `docker run` argv, so the security invariants (capability set, mount set, firewall mode) are checked without a real container:
 
 ```bash
 shellcheck -x scc lib/*.sh lib/commands/*.sh install.sh entrypoint.sh init-firewall.sh
@@ -128,7 +128,7 @@ CI runs both plus a `docker build` smoke test. Contributions follow the [CLA](./
 
 `scc` is **source-available**, not "open source" in the OSI sense. It is licensed under the [PolyForm Noncommercial License 1.0.0](./LICENSE):
 
-- ✅ **Free for any noncommercial use** — personal projects, study, research, hobby, nonprofits, education, government. Use it, modify it, share it.
+- ✅ **Free for any noncommercial use**: personal projects, study, research, hobby, nonprofits, education, government. Use it, modify it, share it.
 - 💼 **Commercial use requires a separate license** from the copyright holder, who retains all commercial rights.
 - 📝 It comes **as-is, with no warranty** (see the license text).
 

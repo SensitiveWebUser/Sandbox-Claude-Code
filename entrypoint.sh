@@ -1,9 +1,9 @@
 #!/bin/sh
-# scc — source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# scc entrypoint — runs as root only to: remap 'node' to the host UID/GID (so
+# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc entrypoint: runs as root only to: remap 'node' to the host UID/GID (so
 # mounted-repo files are owned by you; edits the container's own /etc/passwd,
 # never host namespaces), fix home-volume ownership, and optionally raise the
-# egress firewall (SCC_FIREWALL=1) — then drops to node via gosu and execs.
+# egress firewall (SCC_FIREWALL=1), then drops to node via gosu and execs.
 set -eu
 
 TARGET_UID="${HOST_UID:-1000}"
