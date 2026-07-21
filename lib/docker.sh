@@ -63,15 +63,40 @@ scc_base_args() {
 }
 
 # Mount ONLY the current directory, at the same absolute path as on the host.
+# --ssh-agent: forward the SSH agent so in-sandbox git can sign commits and
+# push. The private key never enters the container; the agent (on the host)
+# performs the signing.
+scc_ssh_agent_args() {
+  [[ -n "${SSH_AUTH_SOCK:-}" && -S "$SSH_AUTH_SOCK" ]] \
+    || scc_die "--ssh-agent needs a running SSH agent (SSH_AUTH_SOCK unset or not a socket). Start one and 'ssh-add' your key."
+  scc_info "--ssh-agent: forwarding your SSH agent for commit signing and push (key stays on the host)"
+  ARGS+=(-v "$SSH_AUTH_SOCK:/run/scc-ssh-agent" -e SSH_AUTH_SOCK=/run/scc-ssh-agent)
+  # SSH commit signing needs the public key file present. Mount only the public
+  # key (not secret); the agent holds the private half.
+  if [[ "$(git config --get gpg.format 2>/dev/null)" == "ssh" ]]; then
+    local key; key="$(git config --get user.signingkey 2>/dev/null || true)"
+    if [[ -n "$key" && -f "$key" ]]; then
+      ARGS+=(-v "$key:$key:ro")
+    elif [[ -n "$key" ]]; then
+      scc_warn "user.signingkey '$key' is not a readable file; commit signing may fail in the sandbox"
+    fi
+  fi
+}
+
+# Mount ONLY the current directory, at the same absolute path as on the host.
 scc_workspace_args() {
   ARGS+=(-v "$PWD:$PWD" -w "$PWD")
   if [[ -f "$HOME/.gitconfig" ]]; then
     ARGS+=(-v "$HOME/.gitconfig:/home/node/.gitconfig:ro")
   fi
-  # No signing keys in the sandbox: disable signing so signed-by-default commits
-  # don't fail. (Opt-in signing: M2.)
-  ARGS+=(-e GIT_CONFIG_COUNT=1
-         -e GIT_CONFIG_KEY_0=commit.gpgsign -e GIT_CONFIG_VALUE_0=false)
+  if [[ "${SCC_SSH_AGENT:-0}" == 1 ]]; then
+    scc_ssh_agent_args
+  else
+    # No signing keys in the sandbox: disable signing so signed-by-default
+    # commits don't fail. Enable real signing with --ssh-agent.
+    ARGS+=(-e GIT_CONFIG_COUNT=1
+           -e GIT_CONFIG_KEY_0=commit.gpgsign -e GIT_CONFIG_VALUE_0=false)
+  fi
 }
 
 # Assemble and exec a workspace run. $1 = mode (firewall|open); rest = command.

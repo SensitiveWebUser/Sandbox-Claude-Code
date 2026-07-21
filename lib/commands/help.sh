@@ -16,6 +16,8 @@ From inside a project directory:
 Run flags (before claude args, e.g. `scc --hardened "fix the tests"`):
   --hardened           Max lockdown: read-only rootfs + tmpfs + firewall on.
                        Opt-in; may restrict what the agent can write or reach.
+  --ssh-agent          Forward your SSH agent so in-sandbox git can sign commits
+                       and push. Your private key never enters the container.
 
 Management:
   scc login            One-time browser login (persists in the home volume)

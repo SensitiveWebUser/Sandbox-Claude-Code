@@ -60,12 +60,14 @@ scc_guard_os() {
 # SCC_HARDENED and leaves the rest in the SCC_ARGV array. `--` ends scc flags.
 scc_take_flags() {
   SCC_HARDENED=0
+  SCC_SSH_AGENT=0
   SCC_ARGV=()
   while [ $# -gt 0 ]; do
     case "$1" in
-      --hardened) SCC_HARDENED=1; shift ;;
-      --)         shift; SCC_ARGV+=("$@"); break ;;
-      *)          SCC_ARGV+=("$@"); break ;;
+      --hardened)  SCC_HARDENED=1; shift ;;
+      --ssh-agent) SCC_SSH_AGENT=1; shift ;;
+      --)          shift; SCC_ARGV+=("$@"); break ;;
+      *)           SCC_ARGV+=("$@"); break ;;
     esac
   done
 }

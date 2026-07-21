@@ -75,6 +75,12 @@ scc --hardened "review this untrusted repo"
 
 It makes the container's root filesystem **read-only** (only your repo, the home volume, and small `tmpfs` mounts stay writable) and turns the egress firewall **on**. It's opt-in because it can restrict what an agent may write or reach. Under a read-only rootfs the entrypoint can't edit `/etc/passwd`, so it runs as your numeric host UID directly. No private keys or extra host state involved.
 
+## Signing and pushing (opt-in)
+
+By default the sandbox holds no keys, so commit signing is disabled and pushing is not authenticated. `scc --ssh-agent` forwards your **SSH agent** into the container so in-sandbox git can sign commits and push. Your private key never enters the sandbox; the agent, running on the host, performs the signing. If SSH commit signing is configured, only your **public** signing key is mounted. Requires a running agent (check with `ssh-add -l`). Off by default; it announces itself when active and fails with a clear message if no agent is present. (Named for what it does: plain git already works in the sandbox without it.)
+
+GitHub CLI support (a host `gh` token passed in as `GH_TOKEN`) is planned as an opt-in toolchain layer.
+
 ## Configuration file
 
 Everything works with zero configuration. When you want defaults that stick, drop a file at `~/.config/scc/config` (override the path with `$SCC_CONFIG`). It's a simple `key = value` file, parsed with a fixed key allowlist and never executed as code:
