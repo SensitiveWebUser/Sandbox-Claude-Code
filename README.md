@@ -12,9 +12,9 @@ Run Claude Code inside an isolated Docker container, from any repo, with one com
 ### At a glance
 
 - **One command.** `cd repo && scc`. No config needed.
-- **Only your repo is exposed by default.** Just the current directory is mounted. SSH keys, `$HOME`, and host credentials stay out. (The one default exception is the clipboard socket for image paste on Wayland, which you can disable, see below.)
+- **Only your repo is exposed by default.** Just the current directory is mounted. SSH keys, `$HOME`, and host credentials stay out. No host-state mounts are on by default.
 - **Hardened by default.** `--cap-drop ALL` plus six caps, `no-new-privileges`, PID limit, no `sudo`, setuid bits stripped. `--hardened` adds a read-only rootfs and egress firewall.
-- **Opt in when you need more.** A default-deny firewall, SSH-agent forwarding for signed commits, language toolchains, and named profiles, all off by default. In-chat image paste is the exception: on by default on Wayland, off with `--no-clipboard`.
+- **Opt in when you need more.** A default-deny firewall, SSH-agent forwarding for signed commits, language toolchains, named profiles, and clipboard forwarding for in-chat image paste (`--clipboard`), all off by default.
 - **Slim and current.** ~500 MB Debian-slim image. Claude Code auto-updates itself.
 
 ## Quick start
@@ -93,7 +93,7 @@ Anything that is not a reserved subcommand is passed straight to `claude`.
 | `--hardened` | run | Read-only rootfs + `tmpfs` + firewall on (max lockdown) | `scc --hardened "review this repo"` |
 | `--ssh-agent` | run | Forward your SSH agent so in-sandbox git can sign and push (key stays on the host) | `scc --ssh-agent "commit and push"` |
 | `--with LIST` | run | Add toolchains for this run (`gh`, `go`, `node`, `python`, `rust`) | `scc --with python,rust "port it"` |
-| `--clipboard` / `--no-clipboard` | run | Forward the host clipboard for in-chat image paste. On by default on Wayland | `scc --no-clipboard` |
+| `--clipboard` / `--no-clipboard` | run | Opt in to forward the host clipboard for in-chat image paste (off by default) | `scc --clipboard` |
 | `--screenshots[=DIR]` | run | Read-only mount a screenshots dir so you can reference images outside the repo | `scc --screenshots "check ~/Pictures/bug.png"` |
 
 Run flags go before the `claude` args. The global `--profile` goes before the subcommand.
@@ -112,7 +112,7 @@ Everything works with zero configuration. For defaults that stick, drop a `key =
 | `docker_args` | `--memory 8g` | Raw arguments appended to `docker run` |
 | `profile` | `work` | Default profile |
 | `toolchains` | `python,node` | Default toolchains to layer in (`--with` adds to this) |
-| `clipboard` | `auto` | In-chat image paste: `auto` (Wayland only), `on` (Wayland), or `off`. X11 needs the explicit `--clipboard` flag |
+| `clipboard` | `off` | In-chat image paste: `off` (default), or `on` (forward the Wayland clipboard). X11 needs the explicit `--clipboard` flag |
 
 ```ini
 # ~/.config/scc/config
@@ -151,14 +151,14 @@ Values resolve as **built-in defaults < config file < project file < environment
 Claude Code takes images three ways: a **file path** in your prompt, **drag-and-drop**, and **clipboard paste** (Ctrl+V). Here is how each behaves in the sandbox:
 
 - **File path** works for any image inside your repo (the mounted directory), for example `analyze ./design.png`. This works on every platform, always.
-- **Clipboard paste (Ctrl+V)** is on by default on **Wayland**. scc forwards the host Wayland clipboard socket into the container (guarded, so it is a silent no-op when you are not on Wayland) and the image pastes straight into the chat. Turn it off with `--no-clipboard` or `clipboard = off`, and `--hardened` turns it off automatically.
+- **Clipboard paste (Ctrl+V)** is **opt-in**: run `scc --clipboard` (or set `clipboard = on`). On **Wayland** scc then forwards the host Wayland clipboard socket into the container so the image pastes into the chat. It is off by default (and always off under `--hardened`). Note that paste depends on your host compositor and clipboard tools cooperating, so if it does not work in your setup, use a file path or `--screenshots` instead.
   - **X11** is forwarded only when you pass `--clipboard` explicitly, because X11 gives any client access to the whole display. A warning is printed, and you may also need to allow the container with `xhost +si:localuser:$USER` (X access control), otherwise the in-container tool cannot authenticate. Wayland is preferred.
   - **macOS and Windows**: the Docker VM cannot reach the host clipboard, so paste does not work there. Use a file path or `--screenshots`.
 - **Images outside the repo**: `--screenshots[=DIR]` read-only mounts a directory (default `~/Pictures` on Linux, `~/Desktop` on macOS) so you can reference shots that live outside the project, for example `scc --screenshots "what is wrong in ~/Pictures/error.png?"`.
 
 The clipboard tools (`wl-clipboard`, `xclip`) are baked into the image, so no rebuild is needed.
 
-**Tradeoff, by design:** default-on clipboard forwarding is the one host mount scc adds by default, because pasting screenshots is a core part of using Claude Code. The forwarded socket is a channel to your host clipboard, so a run can read what you copy while it is active. If that matters for a given session (an untrusted repo, sensitive clipboard contents), turn it off with `--no-clipboard`, set `clipboard = off` in your config to default it off, or use `--hardened` (which disables it along with the rest).
+**Why opt-in:** the forwarded socket is a channel to your host clipboard, so a run could read what you copy while it is active. scc keeps it **off by default** (no host-state mount runs unless you ask), so you turn it on per session with `--clipboard`, or set `clipboard = on` in your config if you want it on for every run.
 
 ### Egress firewall
 

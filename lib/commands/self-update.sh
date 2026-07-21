@@ -18,9 +18,11 @@ scc_selfupdate_refresh_image() {
   scc_has docker || { scc_info "install docker, then run 'scc rebuild' to refresh the image"; return 0; }
   if [[ "$IMAGE" == */* ]]; then
     scc_info "refreshing the image ($IMAGE) ..."
-    docker pull "$IMAGE" >/dev/null 2>&1 \
-      && scc_info "image up to date." \
-      || scc_warn "could not pull $IMAGE now, it will be pulled on the next run"
+    if docker pull "$IMAGE" >/dev/null 2>&1; then
+      scc_info "image up to date."
+    else
+      scc_warn "could not pull $IMAGE now, it will be pulled on the next run"
+    fi
   else
     scc_info "run 'scc rebuild' to rebuild the local image ($IMAGE) with any image-side changes"
   fi

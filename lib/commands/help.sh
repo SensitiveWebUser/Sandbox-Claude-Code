@@ -25,9 +25,9 @@ Run flags (before claude args, e.g. `scc --hardened "fix the tests"`):
   --with LIST          Add toolchains for this run (comma-separated: gh, go,
                        node, python, rust). Built on first use, then cached.
                        'gh' also passes your host gh token in as GH_TOKEN.
-  --clipboard          Forward the host clipboard for in-chat image paste (on by
-                       default on Wayland, off under --hardened). Forwards X11
-                       too when set explicitly. --no-clipboard turns it off.
+  --clipboard          Forward the host clipboard for in-chat image paste
+                       (off by default; forwards Wayland, or X11 with this flag).
+                       Set clipboard = on to default it on. --hardened disables it.
   --screenshots[=DIR]  Mount a screenshots dir read-only so you can reference
                        images from outside the repo (default: your OS shots dir).
 

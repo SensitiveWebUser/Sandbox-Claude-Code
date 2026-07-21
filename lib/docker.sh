@@ -100,17 +100,23 @@ scc_ssh_agent_args() {
   fi
 }
 
-# Clipboard forwarding for in-chat image paste. Default (auto) forwards the host
-# Wayland clipboard socket when present, a no-op on non-Wayland hosts.
-# --hardened turns the auto behavior off. The whole X11 socket (which has NO
-# isolation between clients: any container app could snoop host input) is
-# forwarded ONLY on an explicit per-run opt-in (the --clipboard flag or
-# SCC_CLIPBOARD=on for this run), never from a sticky `clipboard = on` in a
-# config file. Every mount is guarded by an existence check.
+# Clipboard forwarding for in-chat image paste. OFF by default: no clipboard
+# socket is forwarded unless you opt in with --clipboard (this run) or
+# clipboard = on. That keeps the default with zero host-state mounts. On a
+# Wayland host it forwards the Wayland clipboard socket; the whole X11 socket
+# (which has NO isolation between clients, so any container app could snoop host
+# input) is forwarded ONLY on the explicit per-run flag/env, never from a config
+# file. --hardened always disables it. Every mount is guarded by an existence
+# check.
 scc_clipboard_args() {
-  local mode; mode="$(scc_resolve clipboard SCC_CLIPBOARD auto)"
-  if [[ "$mode" == auto && "${SCC_HARDENED:-0}" == 1 ]]; then mode=off; fi
-  [[ "$mode" == off ]] && return 0
+  local mode; mode="$(scc_resolve clipboard SCC_CLIPBOARD off)"
+  if [[ "${SCC_HARDENED:-0}" == 1 ]]; then mode=off; fi
+  # Only recognized "on" values enable it; off / empty / anything unrecognized
+  # means no forwarding (safe default for a host-clipboard channel).
+  case "$(printf '%s' "$mode" | tr '[:upper:]' '[:lower:]')" in
+    on|auto|1|true|yes) ;;
+    *) return 0 ;;
+  esac
 
   if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
     local wl="$WAYLAND_DISPLAY"
@@ -127,9 +133,7 @@ scc_clipboard_args() {
     scc_warn "clipboard: forwarding X11 for paste (X11 has no isolation between clients)"
     return 0
   fi
-  if [[ "$mode" == on ]]; then
-    scc_warn "clipboard: no Wayland socket to forward (X11 paste needs the explicit --clipboard flag)"
-  fi
+  scc_warn "clipboard: enabled but no Wayland socket found to forward (X11 paste needs the --clipboard flag)"
   return 0
 }
 

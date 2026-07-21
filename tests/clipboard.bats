@@ -1,13 +1,13 @@
 #!/usr/bin/env bats
 # scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
-# Clipboard forwarding (default-on, Wayland) and --screenshots mounts.
+# Clipboard forwarding (opt-in) and --screenshots mounts.
 load helpers
 
 setup() {
   scc_load_lib
   scc_set_defaults
   ARGS=()
-  unset SCC_CLIPBOARD WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR SCC_HARDENED SCC_SCREENSHOTS
+  unset SCC_CLIPBOARD SCC_CFG_clipboard WAYLAND_DISPLAY DISPLAY XDG_RUNTIME_DIR SCC_HARDENED SCC_SCREENSHOTS
 }
 
 _mksock() {
@@ -21,28 +21,35 @@ _mksock() {
   [ "${SCC_ARGV[0]}" = "-c" ]
 }
 
-@test "clipboard forwards the Wayland socket by default (auto)" {
+@test "clipboard is OFF by default: no forwarding even on Wayland" {
   local sock="$BATS_TEST_TMPDIR/wl.sock"; _mksock "$sock"
   WAYLAND_DISPLAY="$sock" scc_clipboard_args
+  [[ " ${ARGS[*]} " != *scc-wayland* ]]
+}
+
+@test "clipboard=on forwards the Wayland socket" {
+  local sock="$BATS_TEST_TMPDIR/wl.sock"; _mksock "$sock"
+  SCC_CLIPBOARD=on WAYLAND_DISPLAY="$sock" scc_clipboard_args
   local s=" ${ARGS[*]} "
   [[ "$s" == *"$sock:/tmp/scc-wayland.sock"* ]]
   [[ "$s" == *"WAYLAND_DISPLAY=/tmp/scc-wayland.sock"* ]]
 }
 
-@test "--no-clipboard disables forwarding" {
+@test "config clipboard=on also forwards Wayland" {
+  local sock="$BATS_TEST_TMPDIR/wl.sock"; _mksock "$sock"
+  SCC_CFG_clipboard=on WAYLAND_DISPLAY="$sock" scc_clipboard_args
+  [[ " ${ARGS[*]} " == *scc-wayland* ]]
+}
+
+@test "--no-clipboard keeps forwarding off" {
   local sock="$BATS_TEST_TMPDIR/wl.sock"; _mksock "$sock"
   SCC_CLIPBOARD=off WAYLAND_DISPLAY="$sock" scc_clipboard_args
   [[ " ${ARGS[*]} " != *scc-wayland* ]]
 }
 
-@test "--hardened turns off the auto clipboard" {
+@test "--hardened disables clipboard even when enabled" {
   local sock="$BATS_TEST_TMPDIR/wl.sock"; _mksock "$sock"
-  SCC_HARDENED=1 WAYLAND_DISPLAY="$sock" scc_clipboard_args
-  [[ " ${ARGS[*]} " != *scc-wayland* ]]
-}
-
-@test "no Wayland present is a silent no-op (auto)" {
-  scc_clipboard_args
+  SCC_CLIPBOARD=on SCC_HARDENED=1 WAYLAND_DISPLAY="$sock" scc_clipboard_args
   [[ " ${ARGS[*]} " != *scc-wayland* ]]
 }
 

@@ -66,7 +66,7 @@ scc_take_flags() {
   SCC_SCREENSHOTS=""
   SCC_ARGV=()
   # Note: SCC_CLIPBOARD is NOT reset here, an explicit flag sets it (on|off),
-  # otherwise the env var / config / auto default applies via scc_resolve.
+  # otherwise the env var / config / off default applies via scc_resolve.
   while [ $# -gt 0 ]; do
     case "$1" in
       --hardened)      SCC_HARDENED=1; shift ;;
