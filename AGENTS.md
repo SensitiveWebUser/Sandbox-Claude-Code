@@ -21,7 +21,7 @@ Every change MUST leave `scc` **safe by default** and **zero-config on the happy
 
 2.1. The launcher stays **pure Bash**. Do **not** rewrite it in another language without an explicit decision recorded in `CLAUDE.md`.
 2.2. New launcher logic MUST go into a single-purpose module under `lib/` (see the target layout in `CLAUDE.md`). `scc` at the top level stays a thin dispatcher. One responsibility per file.
-2.3. Subcommands MUST be additive. Each new subcommand is its own unit and MUST NOT change the behavior of existing ones. The reserved names are `yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `uninstall`, `help`; everything else passes straight to `claude`. Preserve that passthrough.
+2.3. Subcommands MUST be additive. Each new subcommand is its own unit and MUST NOT change the behavior of existing ones. The reserved names are `yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`; everything else passes straight to `claude`. Preserve that passthrough.
 2.4. Extension points (toolchains, profiles, config keys) MUST be data-driven where possible, so adding one is adding data, not editing core control flow.
 
 ## 3. Security invariants: NEVER weaken these

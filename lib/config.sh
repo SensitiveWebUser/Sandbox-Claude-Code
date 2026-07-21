@@ -3,7 +3,7 @@
 #
 # lib/config.sh: global config (key = value). Parsed with a fixed allowlist and
 # never sourced/eval'd, so it can set only known values, never run code.
-# Precedence (later wins): defaults < config file < env vars < CLI flags.
+# Precedence (later wins): defaults < global config < project config < env < flags.
 
 SCC_CONFIG_FILE="${SCC_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/scc/config}"
 
@@ -38,8 +38,9 @@ scc_config_load() {
 # Resolve a value with correct precedence: env var wins, then config, then
 # default. Usage: scc_resolve <cfg-key> <ENV_VAR> <default>
 scc_resolve() {
-  local key="$1" env_var="$2" def="$3" cfgvar="SCC_CFG_$1"
+  local key="$1" env_var="$2" def="$3" cfgvar="SCC_CFG_$1" projvar="SCC_PROJ_$1"
   if [[ -n "${!env_var+x}" ]]; then printf '%s' "${!env_var}"; return 0; fi
+  if [[ -n "${!projvar+x}" ]]; then printf '%s' "${!projvar}"; return 0; fi
   if [[ -n "${!cfgvar+x}" ]]; then printf '%s' "${!cfgvar}"; return 0; fi
   printf '%s' "$def"
 }

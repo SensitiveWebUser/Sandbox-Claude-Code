@@ -15,6 +15,10 @@ scc_load_lib() {
   source "$SCC_ROOT/lib/firewall.sh"
   # shellcheck source=../lib/docker.sh
   source "$SCC_ROOT/lib/docker.sh"
+  # shellcheck source=../lib/toolchains.sh
+  source "$SCC_ROOT/lib/toolchains.sh"
+  # shellcheck source=../lib/project.sh
+  source "$SCC_ROOT/lib/project.sh"
 }
 
 # The defaults the dispatcher normally resolves before calling docker helpers.

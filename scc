@@ -27,7 +27,7 @@ if [[ -f "$SCC_SELF/Dockerfile" ]]; then SCC_BUILD_DIR="$SCC_SELF"; else SCC_BUI
 
 # Load modules, then every subcommand.
 # shellcheck disable=SC1090,SC1091
-for _m in ui common config firewall docker toolchains; do . "$SCC_LIB/$_m.sh"; done
+for _m in ui common config firewall docker toolchains project; do . "$SCC_LIB/$_m.sh"; done
 # shellcheck disable=SC1090,SC1091
 for _c in "$SCC_LIB"/commands/*.sh; do . "$_c"; done
 unset _m _c
@@ -69,6 +69,7 @@ scc_guard_os
 # when docker is already gone, so it is exempt from the docker requirement.
 case "$cmd" in
   uninstall) shift; cmd_uninstall "$@"; exit 0 ;;
+  trust)     shift; cmd_trust "$@"; exit 0 ;;
 esac
 
 scc_require_docker

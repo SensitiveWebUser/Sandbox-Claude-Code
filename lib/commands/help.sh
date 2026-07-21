@@ -29,6 +29,7 @@ Management:
   scc update           Update Claude Code to the newest release right now
   scc rebuild          Rebuild the image (fresh base OS + baked-in Claude Code)
   scc profiles         List the home-volume profiles that exist
+  scc trust            Trust this repo's .scc.conf so scc will honor it
   scc uninstall        Remove scc (add --all to also drop the volume + image)
   scc help             This text
 
@@ -36,7 +37,9 @@ Configuration (all optional):
   Config file:   ${XDG_CONFIG_HOME:-~/.config}/scc/config   (override: $SCC_CONFIG)
                  key = value; keys: image, volume, pids_limit, firewall,
                  extra_domains, docker_args, profile, toolchains
-  Precedence:    built-in defaults < config file < environment < CLI flags
+  Project file:  .scc.conf in a repo (trust-gated; may set only toolchains and
+                 firewall-on). Ignored until trusted; run `scc trust` to allow.
+  Precedence:    defaults < config file < project file < environment < flags
 
 Environment switches:
   SCC_FIREWALL=1|0               Force egress firewall on/off

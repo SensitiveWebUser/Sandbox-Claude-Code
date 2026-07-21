@@ -57,7 +57,7 @@ scc login         # one-time browser login, then /exit
 | `scc update` | Jump to the newest Claude Code release immediately |
 | `scc rebuild` | Rebuild the image (fresh base OS; also re-pulls the base image) |
 
-The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `uninstall`, `help`) are reserved; everything else is passed straight to `claude`.
+The subcommand names (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`) are reserved; everything else is passed straight to `claude`.
 
 ## The egress firewall
 
@@ -121,7 +121,20 @@ extra_domains = crates.io,static.crates.io
 docker_args   = --memory 8g
 ```
 
-Values resolve as **built-in defaults < config file < environment variables < CLI flags** (later wins), so a one-off `SCC_FIREWALL=1 scc` still overrides the file.
+Values resolve as **built-in defaults < config file < project file < environment variables < CLI flags** (later wins), so a one-off `SCC_FIREWALL=1 scc` still overrides everything.
+
+### Per-project config (`.scc.conf`)
+
+A repo can carry a `.scc.conf` so it "just works" for anyone who clones it. Because a cloned repo is **untrusted input**, scc treats it carefully:
+
+- It is **ignored until you trust it.** An interactive run shows the file and asks; a non-interactive run ignores it. `scc trust` (after you have read it) records its checksum so it is honored from then on; editing the file re-triggers the prompt.
+- It may set only a **tiny, safe subset**: `toolchains`, and `firewall` (which it may only turn **on**). It can never set `image`, `volume`, `docker_args`, mounts, or widen egress, so a hostile repo cannot loosen the sandbox.
+
+```ini
+# .scc.conf committed in a repo
+toolchains = python,node
+firewall   = on
+```
 
 ## Staying up to date
 
