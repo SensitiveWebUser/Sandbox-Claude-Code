@@ -21,6 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # CDNs/proxies/VM NAT ("Ign ... Remote end closed connection").
 # libstdc++6/libgcc-s1: the native binary links them, listed explicitly so the slim base
 # is guaranteed to carry them. bind9-dnsutils provides dig (dnsutils is transitional).
+# wl-clipboard/xclip let Claude Code read a forwarded host clipboard for image paste.
 # The final find strips setuid/setgid bits: the sandboxed agent needs none, and
 # it removes a local privilege-escalation path (gosu runs as root, not setuid).
 RUN printf 'Acquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\nAcquire::http::No-Cache "true";\n' \
@@ -30,6 +31,7 @@ RUN printf 'Acquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\nAcquire::
         jq less nano procps ripgrep unzip \
         gosu iptables ipset bind9-dnsutils \
         libstdc++6 libgcc-s1 \
+        wl-clipboard xclip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && gosu nobody true \

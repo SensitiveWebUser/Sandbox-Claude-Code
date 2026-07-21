@@ -51,6 +51,16 @@ jobs:
             --tmpfs /tmp:rw,nosuid,nodev,noexec --tmpfs /var/tmp --tmpfs /run \
             -e HOST_UID=1234 -e HOST_GID=1234 scc:ci claude --version
 
+      # Exercise the egress firewall end to end: init-firewall.sh runs, builds
+      # the allowlist, and self-verifies (an allowed host reachable, an arbitrary
+      # one blocked), aborting non-zero on failure. This guards the fail-closed
+      # invariant that bats (argv-only) cannot.
+      - name: Runtime smoke test (firewall)
+        run: |
+          docker run --rm --cap-add NET_ADMIN --cap-add NET_RAW \
+            -e HOST_UID=1000 -e HOST_GID=1000 -e SCC_FIREWALL=1 \
+            scc:ci claude --version
+
       - name: Report image size
         run: docker images scc:ci --format 'scc:ci image size = {{.Size}}'
 
@@ -65,6 +75,7 @@ jobs:
           - { tc: node,   check: "node --version" }
           - { tc: go,     check: "go version" }
           - { tc: rust,   check: "cargo --version" }
+          - { tc: gh,     check: "gh --version" }
     steps:
       - uses: actions/checkout@v4
       - name: Build base image

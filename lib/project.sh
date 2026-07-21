@@ -24,7 +24,7 @@ scc_project_is_trusted() {  # $1=abs-path $2=sha256
 scc_project_trust_add() {   # $1=abs-path $2=sha256
   mkdir -p "$(dirname "$SCC_TRUST_FILE")"
   if [ -f "$SCC_TRUST_FILE" ]; then          # drop any stale entry for this path
-    grep -v "  $1\$" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
+    grep -vF "  $1" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
     mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
   fi
   printf '%s  %s\n' "$2" "$1" >> "$SCC_TRUST_FILE"

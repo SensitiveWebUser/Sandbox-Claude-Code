@@ -68,8 +68,9 @@ scc_guard_os
 # uninstall removes files and (optionally) docker objects. It must run even
 # when docker is already gone, so it is exempt from the docker requirement.
 case "$cmd" in
-  uninstall) shift; cmd_uninstall "$@"; exit 0 ;;
-  trust)     shift; cmd_trust "$@"; exit 0 ;;
+  uninstall)   shift; cmd_uninstall "$@"; exit 0 ;;
+  trust)       shift; cmd_trust "$@"; exit 0 ;;
+  self-update) cmd_self_update; exit 0 ;;
 esac
 
 scc_require_docker
@@ -79,7 +80,7 @@ case "$cmd" in
   rebuild|build)  cmd_rebuild ;;
   update)         cmd_update ;;
   login)          cmd_login ;;
-  shell|sh)       shift; cmd_shell "$@" ;;
+  shell)          shift; cmd_shell "$@" ;;
   yolo)           shift; cmd_yolo "$@" ;;
   *)              cmd_run "$@" ;;   # everything else passes straight to claude
 esac

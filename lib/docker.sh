@@ -55,6 +55,10 @@ scc_base_args() {
            --tmpfs "/var/tmp:rw,nosuid,nodev"
            --tmpfs "/run:rw,nosuid,nodev")
   fi
+  # Pass the gh token by name (set by the gh toolchain), never as an argv value.
+  if [[ "${SCC_GH_TOKEN:-0}" == 1 ]]; then
+    ARGS+=(-e GH_TOKEN)
+  fi
   if [[ -n "$EXTRA_DOCKER_ARGS" ]]; then
     # Intentional word splitting for user-supplied extra args.
     # shellcheck disable=SC2206
@@ -62,7 +66,6 @@ scc_base_args() {
   fi
 }
 
-# Mount ONLY the current directory, at the same absolute path as on the host.
 # --ssh-agent: forward the SSH agent so in-sandbox git can sign commits and
 # push. The private key never enters the container. The agent (on the host)
 # performs the signing.
@@ -83,6 +86,54 @@ scc_ssh_agent_args() {
   fi
 }
 
+# Clipboard forwarding for in-chat image paste. Default (auto) forwards the host
+# Wayland clipboard socket when present, a no-op on non-Wayland hosts. X11 is
+# forwarded only on explicit request (it has no isolation between clients).
+# --hardened turns the auto behavior off. Every mount is guarded by an existence
+# check, so a normal run never fails because of this.
+scc_clipboard_args() {
+  local mode; mode="$(scc_resolve clipboard SCC_CLIPBOARD auto)"
+  if [[ "$mode" == auto && "${SCC_HARDENED:-0}" == 1 ]]; then mode=off; fi
+  [[ "$mode" == off ]] && return 0
+
+  if [[ -n "${WAYLAND_DISPLAY:-}" ]]; then
+    local wl="$WAYLAND_DISPLAY"
+    [[ "$wl" == /* ]] || wl="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$wl"
+    if [[ -S "$wl" ]]; then
+      ARGS+=(-v "$wl:/tmp/scc-wayland.sock" -e WAYLAND_DISPLAY=/tmp/scc-wayland.sock)
+      scc_info "clipboard: forwarding the Wayland clipboard for image paste"
+      return 0
+    fi
+  fi
+  if [[ "$mode" == on && -n "${DISPLAY:-}" && -d /tmp/.X11-unix ]]; then
+    ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix:ro -e "DISPLAY=$DISPLAY")
+    scc_warn "clipboard: forwarding X11 for paste (X11 has no isolation between clients)"
+    return 0
+  fi
+  [[ "$mode" == on ]] && scc_warn "clipboard: no host Wayland/X11 clipboard socket found to forward"
+  return 0
+}
+
+# --screenshots[=DIR]: mount a screenshots/inbox directory read-only so images
+# outside the repo can be referenced. Default dir is the OS screenshot location.
+scc_screenshots_args() {
+  [[ -n "${SCC_SCREENSHOTS:-}" ]] || return 0
+  local dir="$SCC_SCREENSHOTS"
+  if [[ "$dir" == __default__ ]]; then
+    case "$(uname -s)" in
+      Darwin) dir="$HOME/Desktop" ;;
+      *)      dir="$HOME/Pictures" ;;
+    esac
+  fi
+  dir="${dir/#\~/$HOME}"
+  if [[ -d "$dir" ]]; then
+    ARGS+=(-v "$dir:$dir:ro")
+    scc_info "screenshots: mounting $dir read-only for image references"
+  else
+    scc_warn "screenshots: directory '$dir' not found, not mounting it"
+  fi
+}
+
 # Mount ONLY the current directory, at the same absolute path as on the host.
 scc_workspace_args() {
   ARGS+=(-v "$PWD:$PWD" -w "$PWD")
@@ -97,6 +148,8 @@ scc_workspace_args() {
     ARGS+=(-e GIT_CONFIG_COUNT=1
            -e GIT_CONFIG_KEY_0=commit.gpgsign -e GIT_CONFIG_VALUE_0=false)
   fi
+  scc_clipboard_args
+  scc_screenshots_args
 }
 
 # Assemble and exec a workspace run. $1 = mode (firewall|open), rest = command.

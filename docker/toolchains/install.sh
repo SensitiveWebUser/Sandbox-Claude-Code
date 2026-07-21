@@ -7,7 +7,7 @@
 # shellcheck disable=SC2154
 set -eu
 export DEBIAN_FRONTEND=noninteractive
-GO_VERSION=1.22.5
+GO_VERSION=1.23.4
 
 apt_install() {
   apt-get update
@@ -17,6 +17,17 @@ apt_install() {
 for tc in "$@"; do
   echo "scc-toolchains: installing $tc"
   case "$tc" in
+    gh)
+      apt_install ca-certificates curl gnupg
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /tmp/gh.gpg
+      gpg --dearmor -o /etc/apt/keyrings/githubcli-archive-keyring.gpg < /tmp/gh.gpg
+      rm -f /tmp/gh.gpg
+      chmod a+r /etc/apt/keyrings/githubcli-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+        > /etc/apt/sources.list.d/github-cli.list
+      apt_install gh
+      ;;
     python)
       apt_install python3 python3-pip python3-venv
       ;;

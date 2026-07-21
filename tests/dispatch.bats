@@ -8,6 +8,7 @@ setup() {
   export SCC_DOCKER_LOG="$BATS_TEST_TMPDIR/docker.log"
   export HOME="$BATS_TEST_TMPDIR"
   export SCC_CONFIG="$BATS_TEST_TMPDIR/no-such-config"   # ensure no host config leaks in
+  unset WAYLAND_DISPLAY DISPLAY   # keep clipboard auto-forward a no-op in tests
   mkdir -p "$BATS_TEST_TMPDIR/proj"
   cd "$BATS_TEST_TMPDIR/proj"
 }

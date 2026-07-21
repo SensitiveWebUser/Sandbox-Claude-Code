@@ -21,12 +21,19 @@ Run flags (before claude args, e.g. `scc --hardened "fix the tests"`):
                        Opt-in, may restrict what the agent can write or reach.
   --ssh-agent          Forward your SSH agent so in-sandbox git can sign commits
                        and push. Your private key never enters the container.
-  --with LIST          Add language toolchains for this run (comma-separated:
-                       go, node, python, rust). Built on first use, then cached.
+  --with LIST          Add toolchains for this run (comma-separated: gh, go,
+                       node, python, rust). Built on first use, then cached.
+                       'gh' also passes your host gh token in as GH_TOKEN.
+  --clipboard          Forward the host clipboard for in-chat image paste (on by
+                       default on Wayland, off under --hardened). Forwards X11
+                       too when set explicitly. --no-clipboard turns it off.
+  --screenshots[=DIR]  Mount a screenshots dir read-only so you can reference
+                       images from outside the repo (default: your OS shots dir).
 
 Management:
   scc login            One-time browser login (persists in the home volume)
-  scc update           Update Claude Code to the newest release right now
+  scc update           Update Claude Code (inside the sandbox) to the newest release
+  scc self-update      Update scc itself to the latest release from GitHub
   scc rebuild          Rebuild the image (fresh base OS + baked-in Claude Code)
   scc profiles         List the home-volume profiles that exist
   scc trust            Trust this repo's .scc.conf so scc will honor it
@@ -36,7 +43,7 @@ Management:
 Configuration (all optional):
   Config file:   ${XDG_CONFIG_HOME:-~/.config}/scc/config   (override: $SCC_CONFIG)
                  key = value. Keys: image, volume, pids_limit, firewall,
-                 extra_domains, docker_args, profile, toolchains
+                 extra_domains, docker_args, profile, toolchains, clipboard
   Project file:  .scc.conf in a repo (trust-gated, may set only toolchains and
                  firewall-on). Ignored until trusted. Run `scc trust` to allow.
   Precedence:    defaults < config file < project file < environment < flags

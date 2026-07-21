@@ -9,5 +9,5 @@ cmd_yolo() {
   scc_project_load
   scc_apply_toolchains
   scc_run_in_workspace "$(scc_firewall_mode on)" \
-    claude --dangerously-skip-permissions "${SCC_ARGV[@]}"
+    claude --dangerously-skip-permissions ${SCC_ARGV[@]+"${SCC_ARGV[@]}"}
 }

@@ -3,9 +3,9 @@
 # lib/toolchains.sh: opt-in language layers, built on demand atop the base image
 # (e.g. `scc --with python,rust`). IMAGE / SCC_BUILD_DIR / SCC_WITH are set by
 # the dispatcher and the command.
-# shellcheck disable=SC2154
+# shellcheck disable=SC2154,SC2034
 
-SCC_TOOLCHAINS_KNOWN=(go node python rust)
+SCC_TOOLCHAINS_KNOWN=(gh go node python rust)
 
 # Resolve requested toolchains (--with flag, else the config 'toolchains' key),
 # build the layered variant image once if it is missing, and point IMAGE at it.
@@ -30,7 +30,11 @@ scc_apply_toolchains() {
 
   local tc="${out[*]}"
   scc_ensure_image                                   # base image must exist first
-  local base="$IMAGE" tag="${IMAGE%:*}:tc-${tc// /-}"
+  # Derive the variant tag from the base repo. Strip the tag only when the last
+  # path segment has a colon, so a registry-with-port (localhost:5000/scc) is safe.
+  local base="$IMAGE" reporef="$IMAGE"
+  if [[ "${IMAGE##*/}" == *:* ]]; then reporef="${IMAGE%:*}"; fi
+  local tag="$reporef:tc-${tc// /-}"
   if ! docker image inspect "$tag" >/dev/null 2>&1; then
     [ -f "$SCC_BUILD_DIR/docker/toolchains/Dockerfile" ] \
       || scc_die "toolchain build files not found under $SCC_BUILD_DIR/docker/toolchains"
@@ -39,4 +43,24 @@ scc_apply_toolchains() {
       -t "$tag" "$SCC_BUILD_DIR/docker/toolchains"
   fi
   IMAGE="$tag"
+
+  # The gh binary is built whenever gh is requested (flag, config, or project),
+  # but the TOKEN is a credential grant, so pass it only when gh came from the
+  # explicit --with flag, never from config or a trusted .scc.conf.
+  local flag_gh=0 _fw=()
+  if [ -n "${SCC_WITH:-}" ]; then
+    read -ra _fw <<< "${SCC_WITH//,/ }"
+    if scc_in_list gh ${_fw[@]+"${_fw[@]}"}; then flag_gh=1; fi
+  fi
+  if [ "$flag_gh" = 1 ]; then
+    local tok=""
+    if scc_has gh; then tok="$(gh auth token 2>/dev/null || true)"; fi
+    if [ -n "$tok" ]; then
+      export GH_TOKEN="$tok"
+      SCC_GH_TOKEN=1
+      scc_info "gh: passing your host gh token into the sandbox as GH_TOKEN"
+    else
+      scc_warn "gh: no authenticated host gh found, gh will be unauthenticated in the sandbox"
+    fi
+  fi
 }

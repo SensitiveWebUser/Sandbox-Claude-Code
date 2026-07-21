@@ -12,7 +12,7 @@ cmd_trust() {
       ;;
     --remove|--untrust)
       if [ -f "$SCC_TRUST_FILE" ]; then
-        grep -v "  $file\$" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
+        grep -vF "  $file" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
         mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
       fi
       scc_info "removed trust for $file"

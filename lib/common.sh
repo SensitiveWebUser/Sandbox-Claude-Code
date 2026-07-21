@@ -63,15 +63,22 @@ scc_take_flags() {
   SCC_HARDENED=0
   SCC_SSH_AGENT=0
   SCC_WITH=""
+  SCC_SCREENSHOTS=""
   SCC_ARGV=()
+  # Note: SCC_CLIPBOARD is NOT reset here, an explicit flag sets it (on|off),
+  # otherwise the env var / config / auto default applies via scc_resolve.
   while [ $# -gt 0 ]; do
     case "$1" in
-      --hardened)  SCC_HARDENED=1; shift ;;
-      --ssh-agent) SCC_SSH_AGENT=1; shift ;;
-      --with)      shift; [ $# -gt 0 ] || scc_die "--with needs a toolchain list"; SCC_WITH="$1"; shift ;;
-      --with=*)    SCC_WITH="${1#*=}"; shift ;;
-      --)          shift; SCC_ARGV+=("$@"); break ;;
-      *)           SCC_ARGV+=("$@"); break ;;
+      --hardened)      SCC_HARDENED=1; shift ;;
+      --ssh-agent)     SCC_SSH_AGENT=1; shift ;;
+      --with)          shift; [ $# -gt 0 ] || scc_die "--with needs a toolchain list"; SCC_WITH="$1"; shift ;;
+      --with=*)        SCC_WITH="${1#*=}"; shift ;;
+      --clipboard)     SCC_CLIPBOARD=on; shift ;;
+      --no-clipboard)  SCC_CLIPBOARD=off; shift ;;
+      --screenshots)   SCC_SCREENSHOTS=__default__; shift ;;
+      --screenshots=*) SCC_SCREENSHOTS="${1#*=}"; shift ;;
+      --)              shift; SCC_ARGV+=("$@"); break ;;
+      *)               SCC_ARGV+=("$@"); break ;;
     esac
   done
 }

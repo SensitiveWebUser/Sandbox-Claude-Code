@@ -9,5 +9,5 @@ cmd_run() {
   scc_project_load
   scc_apply_toolchains
   local def=off; [ "$SCC_HARDENED" = 1 ] && def=on
-  scc_run_in_workspace "$(scc_firewall_mode "$def")" claude "${SCC_ARGV[@]}"
+  scc_run_in_workspace "$(scc_firewall_mode "$def")" claude ${SCC_ARGV[@]+"${SCC_ARGV[@]}"}
 }

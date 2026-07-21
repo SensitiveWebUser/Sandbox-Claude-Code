@@ -19,8 +19,10 @@ for f in Dockerfile entrypoint.sh init-firewall.sh scc; do
     [[ -f "$SRC_DIR/$f" ]] \
         || { echo "install.sh: missing '$f' next to install.sh" >&2; exit 1; }
 done
-[[ -d "$SRC_DIR/lib" ]] \
-    || { echo "install.sh: missing 'lib/' next to install.sh" >&2; exit 1; }
+for d in lib docker/toolchains; do
+    [[ -d "$SRC_DIR/$d" ]] \
+        || { echo "install.sh: missing '$d/' next to install.sh" >&2; exit 1; }
+done
 
 mkdir -p "$SCC_DIR" "$BIN_DIR"
 install -m 0644 "$SRC_DIR/Dockerfile"       "$SCC_DIR/Dockerfile"
@@ -28,13 +30,15 @@ install -m 0755 "$SRC_DIR/entrypoint.sh"    "$SCC_DIR/entrypoint.sh"
 install -m 0755 "$SRC_DIR/init-firewall.sh" "$SCC_DIR/init-firewall.sh"
 install -m 0755 "$SRC_DIR/scc"              "$BIN_DIR/scc"
 
-# Ship the launcher library (modules + subcommands), replacing any old copy.
+# Ship the launcher library and the toolchain build context, replacing old copies.
 rm -rf "${SCC_DIR:?}/lib"
 cp -R "$SRC_DIR/lib" "$SCC_DIR/lib"
 find "$SCC_DIR/lib" -type f -name '*.sh' -exec chmod 0644 {} +
+rm -rf "${SCC_DIR:?}/docker"
+cp -R "$SRC_DIR/docker" "$SCC_DIR/docker"
 
 echo "Installed:"
-echo "  $SCC_DIR/{Dockerfile,entrypoint.sh,init-firewall.sh,lib/}"
+echo "  $SCC_DIR/{Dockerfile,entrypoint.sh,init-firewall.sh,lib/,docker/}"
 echo "  $BIN_DIR/scc"
 
 case ":$PATH:" in

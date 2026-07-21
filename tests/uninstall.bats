@@ -3,11 +3,14 @@
 load helpers
 
 setup() {
-  export PATH="$BATS_TEST_DIRNAME/stubs:$PATH"
-  export HOME="$BATS_TEST_TMPDIR"
-  export SCC_CONFIG="$BATS_TEST_TMPDIR/none"
   mkdir -p "$BATS_TEST_TMPDIR/bin" "$BATS_TEST_TMPDIR/.scc/lib"
   : > "$BATS_TEST_TMPDIR/bin/scc"
+  chmod +x "$BATS_TEST_TMPDIR/bin/scc"
+  # Put the fixture bin FIRST so `command -v scc` resolves to it, never the
+  # developer's real installed launcher.
+  export PATH="$BATS_TEST_TMPDIR/bin:$BATS_TEST_DIRNAME/stubs:$PATH"
+  export HOME="$BATS_TEST_TMPDIR"
+  export SCC_CONFIG="$BATS_TEST_TMPDIR/none"
 }
 
 @test "uninstall -y removes launcher and build dir" {

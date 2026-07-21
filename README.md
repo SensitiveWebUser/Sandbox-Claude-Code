@@ -12,9 +12,9 @@ Run Claude Code inside an isolated Docker container, from any repo, with one com
 ### At a glance
 
 - **One command.** `cd repo && scc`. No config needed.
-- **Only your repo is exposed.** Just the current directory is mounted. SSH keys, `$HOME`, and host env stay out.
+- **Only your repo is exposed by default.** Just the current directory is mounted. SSH keys, `$HOME`, and host credentials stay out. (The one default exception is the clipboard socket for image paste on Wayland, which you can disable, see below.)
 - **Hardened by default.** `--cap-drop ALL` plus six caps, `no-new-privileges`, PID limit, no `sudo`, setuid bits stripped. `--hardened` adds a read-only rootfs and egress firewall.
-- **Opt in when you need more.** A default-deny firewall, SSH-agent forwarding for signed commits, language toolchains, and named profiles, all off by default.
+- **Opt in when you need more.** A default-deny firewall, SSH-agent forwarding for signed commits, language toolchains, and named profiles, all off by default. In-chat image paste is the exception: on by default on Wayland, off with `--no-clipboard`.
 - **Slim and current.** ~500 MB Debian-slim image. Claude Code auto-updates itself.
 
 ## Quick start
@@ -74,7 +74,8 @@ Anything that is not a reserved subcommand is passed straight to `claude`.
 | `scc yolo [args...]` | `--dangerously-skip-permissions`, firewall **on** by default | `scc yolo -c` |
 | `scc shell` | A plain shell inside the sandbox, for poking around | `scc shell` |
 | `scc login` | One-time browser login (persists in the home volume) | `scc login` |
-| `scc update` | Update Claude Code to the newest release right now | `scc update` |
+| `scc update` | Update Claude Code (inside the sandbox) to the newest release | `scc update` |
+| `scc self-update` | Update scc itself to the latest release | `scc self-update` |
 | `scc rebuild` | Rebuild the image (fresh base OS + baked-in install) | `scc rebuild` |
 | `scc profiles` | List the home-volume profiles that exist | `scc profiles` |
 | `scc trust` | Trust this repo's `.scc.conf` so scc will honor it | `scc trust` |
@@ -88,7 +89,9 @@ Anything that is not a reserved subcommand is passed straight to `claude`.
 | `--profile NAME` | global (before the subcommand) | Use a separate home volume (`scc-home-NAME`) for isolated login/state | `scc --profile work login` |
 | `--hardened` | run | Read-only rootfs + `tmpfs` + firewall on (max lockdown) | `scc --hardened "review this repo"` |
 | `--ssh-agent` | run | Forward your SSH agent so in-sandbox git can sign and push (key stays on the host) | `scc --ssh-agent "commit and push"` |
-| `--with LIST` | run | Add language toolchains for this run (`go`, `node`, `python`, `rust`) | `scc --with python,rust "port it"` |
+| `--with LIST` | run | Add toolchains for this run (`gh`, `go`, `node`, `python`, `rust`) | `scc --with python,rust "port it"` |
+| `--clipboard` / `--no-clipboard` | run | Forward the host clipboard for in-chat image paste. On by default on Wayland | `scc --no-clipboard` |
+| `--screenshots[=DIR]` | run | Read-only mount a screenshots dir so you can reference images outside the repo | `scc --screenshots "check ~/Pictures/bug.png"` |
 
 Run flags go before the `claude` args. The global `--profile` goes before the subcommand.
 
@@ -106,6 +109,7 @@ Everything works with zero configuration. For defaults that stick, drop a `key =
 | `docker_args` | `--memory 8g` | Raw arguments appended to `docker run` |
 | `profile` | `work` | Default profile |
 | `toolchains` | `python,node` | Default toolchains to layer in |
+| `clipboard` | `auto` | In-chat image paste: `auto` (on for Wayland), `on` (also X11), or `off` |
 
 ```ini
 # ~/.config/scc/config
@@ -126,12 +130,27 @@ Values resolve as **built-in defaults < config file < project file < environment
 | `SCC_ALLOW_ANY_DIR=1` | Permit running from `$HOME` or `/` (not advised) |
 | `SCC_SKIP_OS_CHECK=1` | Skip the operating-system support check |
 | `SCC_TRUST_PROJECT=1` | Auto-trust a repo's `.scc.conf` (for automation) |
+| `SCC_CLIPBOARD=auto\|on\|off` | Clipboard image paste (see the config `clipboard` key) |
 | `SCC_CONFIG=path` | Use a different config-file path |
 | `CLAUDE_CODE_OAUTH_TOKEN=...` | Passed through when set (login fallback) |
 
 ---
 
 ## Details
+
+### Images and clipboard
+
+Claude Code takes images three ways: a **file path** in your prompt, **drag-and-drop**, and **clipboard paste** (Ctrl+V). Here is how each behaves in the sandbox:
+
+- **File path** works for any image inside your repo (the mounted directory), for example `analyze ./design.png`. This works on every platform, always.
+- **Clipboard paste (Ctrl+V)** is on by default on **Wayland**. scc forwards the host Wayland clipboard socket into the container (guarded, so it is a silent no-op when you are not on Wayland) and the image pastes straight into the chat. Turn it off with `--no-clipboard` or `clipboard = off`, and `--hardened` turns it off automatically.
+  - **X11** is forwarded only when you pass `--clipboard` explicitly, because X11 gives any client access to the whole display. A warning is printed, and you may also need to allow the container with `xhost +si:localuser:$USER` (X access control), otherwise the in-container tool cannot authenticate. Wayland is preferred.
+  - **macOS and Windows**: the Docker VM cannot reach the host clipboard, so paste does not work there. Use a file path or `--screenshots`.
+- **Images outside the repo**: `--screenshots[=DIR]` read-only mounts a directory (default `~/Pictures` on Linux, `~/Desktop` on macOS) so you can reference shots that live outside the project, for example `scc --screenshots "what is wrong in ~/Pictures/error.png?"`.
+
+The clipboard tools (`wl-clipboard`, `xclip`) are baked into the image, so no rebuild is needed.
+
+**Tradeoff, by design:** default-on clipboard forwarding is the one host mount scc adds by default, because pasting screenshots is a core part of using Claude Code. The forwarded socket is a channel to your host clipboard, so a run can read what you copy while it is active. If that matters for a given session (an untrusted repo, sensitive clipboard contents), turn it off with `--no-clipboard`, set `clipboard = off` in your config to default it off, or use `--hardened` (which disables it along with the rest).
 
 ### Egress firewall
 
@@ -153,7 +172,7 @@ It makes the container's root filesystem **read-only** (only your repo, the home
 
 By default the sandbox holds no keys, so commit signing is disabled and pushing is not authenticated. `scc --ssh-agent` forwards your **SSH agent** into the container so in-sandbox git can sign commits and push. Your private key never enters the sandbox. The agent, on the host, performs the signing. If SSH commit signing is configured, only your **public** signing key is mounted. Requires a running agent (check with `ssh-add -l`). Off by default. It announces itself when active and fails with a clear message if no agent is present. Plain git already works without it. The flag is named for what it adds.
 
-GitHub CLI support (a host `gh` token passed in as `GH_TOKEN`) is planned as an opt-in toolchain layer.
+GitHub CLI support is a toolchain: `scc --with gh` installs `gh` and passes your host `gh` token in as `GH_TOKEN` (see [Language toolchains](#language-toolchains)).
 
 ### Language toolchains
 
@@ -164,7 +183,7 @@ scc --with python,rust "port this module"
 scc --with node "debug the test runner"
 ```
 
-Known toolchains: `go`, `node`, `python`, `rust`. The first `--with` for a given combination builds a layered image (`scc:tc-<combo>`) and caches it. Later runs reuse it instantly. Toolchains install into system paths, so they are not shadowed by the home volume. Set a default with `toolchains = python` in the config file. (Note: on Debian, `pip install` into the system Python is refused by PEP 668. Use a virtualenv, which is why `python3-venv` is included.)
+Known toolchains: `gh`, `go`, `node`, `python`, `rust`. The first `--with` for a given combination builds a layered image (`scc:tc-<combo>`) and caches it. Later runs reuse it instantly. Toolchains install into system paths, so they are not shadowed by the home volume. The `gh` toolchain also passes your host `gh` token into the sandbox as `GH_TOKEN` (by name, never in a process list), so the agent can drive the GitHub CLI. No `gh` config is mounted, and if the host `gh` is unauthenticated, `gh` is simply unauthenticated inside. Set a default with `toolchains = python` in the config file. (Note: on Debian, `pip install` into the system Python is refused by PEP 668. Use a virtualenv, which is why `python3-venv` is included.)
 
 ### Profiles
 
@@ -194,13 +213,17 @@ firewall   = on
 
 ### Staying up to date
 
-Three layers, strongest first: Claude Code's native install auto-updates in the background into the persisted volume, so ordinary use keeps you current. `scc update` forces the newest release right now, and `scc rebuild` refreshes the base image and the baked-in install (used by fresh volumes). For reproducibility instead of freshness, pin a version in the Dockerfile (`... install.sh | bash -s -- <version>`) and add `ENV DISABLE_AUTOUPDATER=1`.
+Two things update independently: **Claude Code** (inside the sandbox) and **scc** (the launcher).
+
+Claude Code, strongest first: its native install auto-updates in the background into the persisted volume, so ordinary use keeps you current. `scc update` forces the newest release right now, and `scc rebuild` refreshes the base image and the baked-in install (used by fresh volumes). For reproducibility instead of freshness, pin a version in the Dockerfile (`... install.sh | bash -s -- <version>`) and add `ENV DISABLE_AUTOUPDATER=1`.
+
+scc itself: `scc self-update` reinstalls the latest GitHub release (the same pinned-tarball path as the `curl` install). Pin a specific one with `SCC_VERSION=vX.Y.Z scc self-update`.
 
 ### What the sandbox can and cannot touch
 
-**Mounted in:** the current directory (read-write, same path as on the host), your `~/.gitconfig` (read-only, so commits carry your name, and signing is disabled unless you pass `--ssh-agent`), and the `scc-home` volume holding Claude's install and credentials. **Passed through:** `TERM`, `COLORTERM`, and `CLAUDE_CODE_OAUTH_TOKEN` if set.
+**Mounted in:** the current directory (read-write, same path as on the host), your `~/.gitconfig` (read-only, so commits carry your name, and signing is disabled unless you pass `--ssh-agent`), and the `scc-home` volume holding Claude's install and credentials. **Passed through:** `TERM`, `COLORTERM`, `CLAUDE_CODE_OAUTH_TOKEN` if set, and (only when you opt in) `GH_TOKEN` with `--with gh` and a forwarded clipboard socket for image paste.
 
-**Not shared:** SSH keys, the rest of your home directory, your shell environment, host credentials of any kind (unless you opt in with `--ssh-agent`). The launcher also refuses to run from `$HOME` or `/`, since mounting those would defeat the point.
+**Not shared:** SSH keys, the rest of your home directory, your shell environment, host credentials of any kind. Opt-in exceptions are explicit: `--ssh-agent` (agent socket), `--with gh` (a GitHub token), `--screenshots` (a read-only directory), and clipboard forwarding for image paste. The launcher also refuses to run from `$HOME` or `/`, since mounting those would defeat the point.
 
 **Escape hatch:** `SCC_DOCKER_ARGS` appends raw arguments to `docker run` (extra mounts, `--memory 8g`, ports for a dev server, and so on).
 

@@ -40,3 +40,27 @@ _mock_docker() {
   run scc_apply_toolchains
   [ "$status" -ne 0 ]
 }
+
+@test "gh toolchain builds a gh layer and passes the host token by name" {
+  _mock_docker
+  gh() { [ "$1 $2" = "auth token" ] && echo tok-xyz; }
+  scc_take_flags --with gh
+  scc_apply_toolchains
+  [ "$IMAGE" = "scc:tc-gh" ]
+  [ "$SCC_GH_TOKEN" = 1 ]
+  [ "$GH_TOKEN" = "tok-xyz" ]
+  scc_base_args open
+  [[ " ${ARGS[*]} " == *" -e GH_TOKEN "* ]]
+}
+
+@test "config-driven gh builds the layer but does NOT pass the token (must be explicit)" {
+  _mock_docker
+  gh() { [ "$1 $2" = "auth token" ] && echo tok-xyz; }
+  unset SCC_TOOLCHAINS
+  printf 'toolchains = gh\n' > "$BATS_TEST_TMPDIR/gconf"
+  scc_config_load "$BATS_TEST_TMPDIR/gconf"
+  scc_take_flags        # no --with flag
+  scc_apply_toolchains
+  [ "$IMAGE" = "scc:tc-gh" ]
+  [ "${SCC_GH_TOKEN:-0}" != 1 ]
+}

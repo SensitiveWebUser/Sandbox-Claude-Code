@@ -9,7 +9,7 @@ SCC_CONFIG_FILE="${SCC_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/scc/config}"
 
 # Keys the global config is allowed to set. Each maps to an env var + default
 # in the dispatcher via scc_resolve.
-SCC_CFG_ALLOWED=(image volume pids_limit firewall extra_domains docker_args profile toolchains)
+SCC_CFG_ALLOWED=(image volume pids_limit firewall extra_domains docker_args profile toolchains clipboard)
 
 # Load the config file into SCC_CFG_<key> variables. Safe: no eval. Unknown
 # keys and malformed lines are warned about and skipped.

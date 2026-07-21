@@ -30,20 +30,25 @@ This project is an **independent, unofficial** wrapper. It does **not** own, con
 The launcher is **modular pure Bash** (no runtime deps), split so features land without touching the core. Chosen over a Go rewrite because zero-install "download and run" *is* the product's simplicity promise. Revisit only if Bash becomes the bottleneck for correctness.
 
 ```
-scc                      # thin dispatcher: resolve lib, load config, OS guard, route
+scc                      # thin dispatcher: resolve lib, load config, profile, OS guard, route
 lib/
   ui.sh                  # pure-Bash rich CLI: colors, headings, log levels (zero deps)
-  common.sh              # scc_die, trim/quote helpers, guard_workdir, guard_os
+  common.sh              # scc_die, trim/quote helpers, scc_take_flags, guard_workdir, guard_os
   config.sh              # global config parser (allowlisted key=value) + scc_resolve
-  firewall.sh            # scc_firewall_mode: on/off decision (env/config/default)
-  docker.sh              # scc_base_args / scc_workspace_args / build / run
-  commands/*.sh          # one cmd_<name> per subcommand (run, yolo, shell, login, update, rebuild, help)
-Dockerfile               # builds scc:latest from node:22-bookworm-slim (Anthropic's installer)
-entrypoint.sh            # in-container: remap UID/GID, fix volume ownership, raise firewall, gosu→node
+  firewall.sh            # scc_firewall_mode: on/off decision (env/config/project/default)
+  docker.sh              # base/workspace args, ssh-agent + clipboard + screenshots, build, run
+  toolchains.sh          # scc_apply_toolchains: opt-in --with language layers
+  project.sh             # trust-gated per-project .scc.conf
+  commands/*.sh          # one cmd_<name> per subcommand (run, yolo, shell, login, update,
+                         #   self-update, rebuild, profiles, trust, uninstall, help)
+Dockerfile               # base image debian:bookworm-slim (Claude Code native binary, no Node)
+docker/toolchains/       # opt-in language layers (--with) built on the base
+entrypoint.sh            # in-container: remap UID/GID, fix volume ownership, raise firewall, gosu drop
 init-firewall.sh         # in-container: default-deny egress allowlist (iptables/ipset)
-install.sh               # copies build files + lib/ to ~/.scc, launcher to ~/.local/bin
+install.sh               # copies build files + lib/ + docker/ to ~/.scc, launcher to ~/.local/bin
 tests/                   # *.bats + helpers.bash + stubs/docker (docker stubbed, asserts on argv)
-.github/workflows/ci.yml # shellcheck -x + bats + docker build smoke
+.github/workflows/       # ci.yml (shellcheck + bats + build/runtime/firewall/toolchain smokes),
+                         #   release.yml (vX.Y.Z tag -> GHCR image + GitHub release)
 ```
 
 Control flow: `scc <cmd>` → source `lib/` + `commands/` → `scc_config_load` + resolve settings → OS/docker guards → `cmd_<name>` → `scc_base_args`/`scc_workspace_args` build `$ARGS` → `docker run … entrypoint.sh` → entrypoint sets up as root, `gosu`s to `node`, execs `claude` (or `bash`).
@@ -52,24 +57,25 @@ Control flow: `scc <cmd>` → source `lib/` + `commands/` → `scc_config_load` 
 
 **Edit loop:** `scc` sources `lib/` from *next to the script* when present, so **launcher/lib edits in the repo take effect immediately**, no reinstall. Only **image** changes (Dockerfile/entrypoint/firewall) still need `./install.sh` (to copy build files to `~/.scc`) followed by `scc rebuild`.
 
-## Roadmap (agreed feature direction)
+## Roadmap status
 
-Build in roughly this order. **Core hardening and testing before breadth**. Each item must land behind good defaults and stay optional. Full milestone detail lives in the plan (`/home/node/.claude/plans/snoopy-launching-haven.md`).
+All of the originally agreed milestones are implemented and CI-validated:
 
-- **✅ M0 (done): clean foundation**. Modular `lib/` refactor, global config file, `bats` tests + `shellcheck` CI, OS guard. Everything below builds on this.
-1. **Public prebuilt image**: publish the base image (preferred: **GitHub Container Registry / GHCR**) so first run doesn't require a local build. Keep local build fully supported.
-2. **Image slimming**: the image is ~900 MB today. Trim it (leaner base, fewer layers) without losing tools agents/firewall need.
-3. **First-class git** (opt-in `--git`): enable in-sandbox git incl. **commit signing** by forwarding the signer (SSH-signing via `SSH_AUTH_SOCK`, or gpg-agent). Off by default. Today signing is force-disabled because no keys exist in the container.
-4. **`gh` CLI, plugged in from the host** (opt-in `--gh`): install `gh`, then inject a **token only** via `gh auth token` on the host as `-e GH_TOKEN`. Never mount host `gh`/ssh config.
-5. **Language toolchain presets**: opt-in Python/Go/Rust/Node layers (`scc --with python,rust`) as layered image variants. Default stays slim.
-6. **Named / persistent profiles**: multiple home volumes (`--profile work`) for separate logins/state, plus reset.
-7. **Per-project config (`.scc.conf`)**: reuses the config parser with a **restricted, security-gated** allowlist (untrusted cloned-repo input that may only tighten, never loosen, with a direnv-style repo-trust prompt).
-8. **`uninstall` subcommand + richer `help`**: clean removal (launcher, `~/.scc`, optionally the volume/image).
+- **M0** clean foundation: modular `lib/` refactor, global config, `bats` + `shellcheck` CI, OS guard.
+- **M1** distribution: debian base swap (~500 MB), GHCR release workflow, `curl` installer, `uninstall`.
+- **Hardening**: setuid strip, `--hardened` (read-only rootfs + tmpfs + firewall on), AGENTS 3.7/3.8.
+- **M2** `--ssh-agent`: forward the agent for signing/push, no private keys ever enter the container.
+- **M3** named profiles (`--profile`) and language toolchains (`--with gh,go,node,python,rust`).
+- **M4** trust-gated per-project `.scc.conf` (may only tighten, never loosen).
+- Plus `scc self-update`, and clipboard / `--screenshots` image input.
+
+Remaining ideas (not yet built): multi-arch GHCR image, an `scc doctor`. Update this list when scope changes.
 
 ## Working on this repo
 
 ```bash
-shellcheck -x scc lib/*.sh lib/commands/*.sh install.sh entrypoint.sh init-firewall.sh   # keep clean
+shellcheck -x scc lib/*.sh lib/commands/*.sh install.sh install-remote.sh \
+  entrypoint.sh init-firewall.sh docker/toolchains/install.sh   # keep clean
 bats tests               # unit + stubbed-docker dispatch tests (no real docker needed)
 # Launcher/lib edits take effect immediately when running the repo's ./scc.
 # Image changes only:
@@ -83,11 +89,12 @@ SCC_FIREWALL=1 scc shell # exercise the firewall path
 These are the security properties the project exists to provide. `AGENTS.md` states them as hard rules. The summary:
 
 - **Least privilege in `scc`**: `--cap-drop ALL` + only the six caps the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL). Firewall path adds NET_ADMIN + NET_RAW. Plus `--security-opt no-new-privileges`, `--pids-limit`, `--init`. No `sudo` in the image.
-- **Only the current directory is mounted** (`-v "$PWD:$PWD"`, same absolute path), plus `~/.gitconfig` read-only and the `scc-home` volume. SSH keys, the rest of `$HOME`, and host env are deliberately not shared. `guard_workdir` refuses `$HOME` or `/`.
-- **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. `SCC_FIREWALL=1|0` overrides.
+- **Only the current directory is mounted by default** (`-v "$PWD:$PWD"`, same absolute path), plus `~/.gitconfig` read-only and the `scc-home` volume. SSH keys, the rest of `$HOME`, and host env are deliberately not shared. Opt-in flags may add narrow, announced mounts (`--ssh-agent`, `--with gh` token, `--screenshots`, clipboard forwarding), never by default. `guard_workdir` refuses `$HOME` or `/`.
+- **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. `SCC_FIREWALL=1|0` overrides. A trusted `.scc.conf` may only tighten it (enable).
 - **Firewall fails closed**: `init-firewall.sh` runs `set -euo pipefail`, fetches GitHub ranges *before* tightening policy, ends with a positive/negative reachability check that `exit 1`s on failure, and closes IPv6 entirely. Keep the verification step.
-- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `help`): anything else passes straight to `claude`.
+- **Integrations grant capability, never secrets** (AGENTS 3.7): check-first, off by default, narrowest passthrough, no private keys in the container, announced when active.
+- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `self-update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`): anything else passes straight to `claude`.
 
 ## Key env vars (all optional)
 
-`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run`, escape hatch for extra mounts/limits), `SCC_ALLOW_ANY_DIR`, `SCC_SKIP_OS_CHECK`, `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`) overrides the matching config-file key.
+`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run`, escape hatch for extra mounts/limits), `SCC_TOOLCHAINS`, `SCC_CLIPBOARD`, `SCC_PROFILE`, `SCC_ALLOW_ANY_DIR`, `SCC_SKIP_OS_CHECK`, `SCC_TRUST_PROJECT` (auto-trust a `.scc.conf`), `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `SCC_REPO`/`SCC_VERSION`/`SCC_BOOTSTRAP_REF` (used by the installer and `self-update`), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var overrides the matching config-file key (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`, `SCC_TOOLCHAINS`→`toolchains`, `SCC_CLIPBOARD`→`clipboard`, `SCC_PROFILE`→`profile`).

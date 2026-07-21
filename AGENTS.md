@@ -21,7 +21,7 @@ Every change MUST leave `scc` **safe by default** and **zero-config on the happy
 
 2.1. The launcher stays **pure Bash**. Do **not** rewrite it in another language without an explicit decision recorded in `CLAUDE.md`.
 2.2. New launcher logic MUST go into a single-purpose module under `lib/` (see the target layout in `CLAUDE.md`). `scc` at the top level stays a thin dispatcher. One responsibility per file.
-2.3. Subcommands MUST be additive. Each new subcommand is its own unit and MUST NOT change the behavior of existing ones. The reserved names are `yolo`, `shell`, `login`, `update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`. Everything else passes straight to `claude`. Preserve that passthrough.
+2.3. Subcommands MUST be additive. Each new subcommand is its own unit and MUST NOT change the behavior of existing ones. The reserved names are `yolo`, `shell`, `login`, `update`, `self-update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`. Everything else passes straight to `claude`. Preserve that passthrough.
 2.4. Extension points (toolchains, profiles, config keys) MUST be data-driven where possible, so adding one is adding data, not editing core control flow.
 
 ## 3. Security invariants: NEVER weaken these
@@ -30,7 +30,7 @@ These encode the entire reason the project exists. You MUST NOT relax any of the
 
 3.1. Every container run MUST keep `--cap-drop ALL`, re-adding **only** the caps actually required: the six the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL), plus NET_ADMIN + NET_RAW **only** when the firewall is enabled. Adding any other capability requires justification.
 3.2. `--security-opt no-new-privileges:true`, `--pids-limit`, and `--init` MUST remain on every run. There MUST be no `sudo` in the image.
-3.3. The workspace mount MUST remain **only** the current directory (`-v "$PWD:$PWD"`), plus `~/.gitconfig` read-only and the home volume. You MUST NOT mount `$HOME`, SSH keys, host credentials, or arbitrary host paths by default. `guard_workdir` (refusing `$HOME` and `/`) MUST stay.
+3.3. The workspace mount MUST remain **only** the current directory (`-v "$PWD:$PWD"`), plus `~/.gitconfig` read-only and the home volume. You MUST NOT mount `$HOME`, SSH keys, host credentials, or arbitrary host paths by default. `guard_workdir` (refusing `$HOME` and `/`) MUST stay. **Documented exception:** clipboard forwarding for in-chat image paste mounts the host Wayland clipboard socket by default on Wayland hosts, because image paste is a core Claude Code workflow. It is the only host-state mount that is on by default, is a no-op without Wayland, is disabled by `--no-clipboard` / `clipboard = off`, and is off under `--hardened`. The tradeoff (a channel to the host clipboard) is called out in the README. Any *further* default mount still needs its own justification.
 3.4. New host state reaching the container MUST be **opt-in and narrow**: a specific passthrough (e.g. a single scoped `gh` token via an explicit flag), never a broad mount or a blanket env dump. Secrets MUST NOT be baked into the image or logged.
 3.5. The firewall MUST fail closed: `set -euo pipefail`, fetch allowlist sources *before* tightening policy, keep the final positive/negative reachability check that `exit 1`s on failure, and keep IPv6 closed. If you cannot verify egress is restricted, the run MUST abort, not proceed open.
 3.6. `scc yolo` (skip-permissions) MUST keep the firewall **on by default**. An agent that skips prompts does not also get open egress.
