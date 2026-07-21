@@ -9,7 +9,8 @@ setup() { export HOME="$BATS_TEST_TMPDIR/home"; mkdir -p "$HOME"; }
 
 _pkg() {  # copy the installable files into $1
   cp -R "$SCC_ROOT/Dockerfile" "$SCC_ROOT/entrypoint.sh" "$SCC_ROOT/init-firewall.sh" \
-        "$SCC_ROOT/scc" "$SCC_ROOT/install.sh" "$SCC_ROOT/lib" "$SCC_ROOT/docker" "$1/"
+        "$SCC_ROOT/scc" "$SCC_ROOT/install.sh" "$SCC_ROOT/VERSION" \
+        "$SCC_ROOT/lib" "$SCC_ROOT/docker" "$1/"
 }
 
 @test "installs from a GitHub-style tarball (<repo>-<tag>/...)" {
@@ -23,6 +24,8 @@ _pkg() {  # copy the installable files into $1
   [ -d "$BATS_TEST_TMPDIR/dot/lib" ]
   # docker/toolchains must ship too, or `--with` dies for installed users.
   [ -f "$BATS_TEST_TMPDIR/dot/docker/toolchains/Dockerfile" ]
+  # VERSION ships so an installed scc reports its real version.
+  [ -f "$BATS_TEST_TMPDIR/dot/VERSION" ]
 }
 
 @test "installs from a flat tarball (install.sh at top level)" {

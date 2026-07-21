@@ -15,7 +15,7 @@ BIN_DIR="${BIN_DIR:-$HOME/.local/bin}"
 . "$SRC_DIR/lib/common.sh"
 scc_guard_os
 
-for f in Dockerfile entrypoint.sh init-firewall.sh scc VERSION; do
+for f in Dockerfile entrypoint.sh init-firewall.sh scc; do
     [[ -f "$SRC_DIR/$f" ]] \
         || { echo "install.sh: missing '$f' next to install.sh" >&2; exit 1; }
 done
@@ -28,7 +28,9 @@ mkdir -p "$SCC_DIR" "$BIN_DIR"
 install -m 0644 "$SRC_DIR/Dockerfile"       "$SCC_DIR/Dockerfile"
 install -m 0755 "$SRC_DIR/entrypoint.sh"    "$SCC_DIR/entrypoint.sh"
 install -m 0755 "$SRC_DIR/init-firewall.sh" "$SCC_DIR/init-firewall.sh"
-install -m 0644 "$SRC_DIR/VERSION"          "$SCC_DIR/VERSION"
+# VERSION is optional metadata: ship it when present (real installs have it),
+# skip it otherwise (scc then reports its version as "unknown").
+if [[ -f "$SRC_DIR/VERSION" ]]; then install -m 0644 "$SRC_DIR/VERSION" "$SCC_DIR/VERSION"; fi
 install -m 0755 "$SRC_DIR/scc"              "$BIN_DIR/scc"
 
 # Ship the launcher library and the toolchain build context. Copy into a
