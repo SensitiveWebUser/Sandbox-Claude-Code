@@ -32,11 +32,11 @@ setup() {
   [ -z "${SCC_PROJ_toolchains:-}" ]
 }
 
-@test "SCC_TRUST_PROJECT=1 trusts and applies" {
+@test "SCC_TRUST_PROJECT=1 applies for this run only, without recording trust" {
   printf 'toolchains = go\n' > .scc.conf
   SCC_TRUST_PROJECT=1 scc_project_load < /dev/null
   [ "$SCC_PROJ_toolchains" = "go" ]
-  [ -f "$SCC_TRUST_FILE" ]
+  [ ! -f "$SCC_TRUST_FILE" ]
 }
 
 @test "a hash-matching trusted config is applied automatically" {

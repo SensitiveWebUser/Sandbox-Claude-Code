@@ -32,6 +32,12 @@ for _m in ui common config firewall docker toolchains project; do . "$SCC_LIB/$_
 for _c in "$SCC_LIB"/commands/*.sh; do . "$_c"; done
 unset _m _c
 
+# scc's own version, from the VERSION file shipped next to the launcher (repo)
+# or into ~/.scc by install.sh. Consumed by `scc version` and the help heading.
+if [[ -f "$SCC_SELF/VERSION" ]]; then SCC_VERSION_STR="$(scc_trim "$(<"$SCC_SELF/VERSION")")"
+elif [[ -f "$SCC_DIR/VERSION" ]]; then SCC_VERSION_STR="$(scc_trim "$(<"$SCC_DIR/VERSION")")"
+else SCC_VERSION_STR="unknown"; fi
+
 # Resolve settings: built-in defaults < config file < environment.
 scc_config_load
 
@@ -50,7 +56,16 @@ if [[ -n "$SCC_PROFILE" && ! "$SCC_PROFILE" =~ ^[A-Za-z0-9_-]+$ ]]; then
   scc_die "invalid profile name '$SCC_PROFILE' (letters, digits, - and _ only)"
 fi
 
-IMAGE="$(scc_resolve image SCC_IMAGE "scc:latest")"
+# Default image: the published GHCR image for this repo, lowercased as GHCR
+# requires. This gives the fast "pull, don't build" path out of the box;
+# scc_ensure_image falls back to a local build if the pull fails (private
+# package, offline, or a fork). Override with SCC_IMAGE or config `image`.
+SCC_DEFAULT_REPO="SensitiveWebUser/Sandbox-Claude-Code"
+_repo_lc="$(printf '%s' "${SCC_REPO:-$SCC_DEFAULT_REPO}" | tr '[:upper:]' '[:lower:]')"
+SCC_DEFAULT_IMAGE="ghcr.io/${_repo_lc}:latest"
+unset _repo_lc
+
+IMAGE="$(scc_resolve image SCC_IMAGE "$SCC_DEFAULT_IMAGE")"
 VOLUME="$(scc_resolve volume SCC_VOLUME "scc-home${SCC_PROFILE:+-$SCC_PROFILE}")"
 PIDS_LIMIT="$(scc_resolve pids_limit SCC_PIDS_LIMIT "2048")"
 EXTRA_DOMAINS="$(scc_resolve extra_domains FIREWALL_EXTRA_DOMAINS "")"
@@ -58,9 +73,10 @@ EXTRA_DOCKER_ARGS="$(scc_resolve docker_args SCC_DOCKER_ARGS "")"
 
 cmd="${1:-}"
 
-# help needs neither docker nor a supported OS.
+# help and version need neither docker nor a supported OS.
 case "$cmd" in
-  help|-h|--help) cmd_help; exit 0 ;;
+  help|-h|--help)       cmd_help; exit 0 ;;
+  version|--version|-V) printf 'scc %s\n' "$SCC_VERSION_STR"; exit 0 ;;
 esac
 
 scc_guard_os
@@ -70,7 +86,8 @@ scc_guard_os
 case "$cmd" in
   uninstall)   shift; cmd_uninstall "$@"; exit 0 ;;
   trust)       shift; cmd_trust "$@"; exit 0 ;;
-  self-update) cmd_self_update; exit 0 ;;
+  init)        shift; cmd_init "$@"; exit 0 ;;
+  self-update) shift; cmd_self_update "$@"; exit 0 ;;
 esac
 
 scc_require_docker

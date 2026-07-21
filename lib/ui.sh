@@ -2,7 +2,6 @@
 # scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # lib/ui.sh: pure-Bash rich-CLI helpers (zero deps). Honors NO_COLOR/non-tty.
-# gum/fzf are used only if present, never required.
 
 if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then
   SCC_C_RED=$'\033[31m'
@@ -23,5 +22,3 @@ scc_info() { printf 'scc: %s\n' "$*" >&2; }
 
 scc_heading() { printf '%s%s%s\n' "$SCC_C_BOLD" "$*" "$SCC_C_RESET"; }
 scc_dim()     { printf '%s%s%s\n' "$SCC_C_DIM"  "$*" "$SCC_C_RESET"; }
-
-scc_have_picker() { scc_has fzf || scc_has gum; }

@@ -42,3 +42,13 @@ setup() {
     run bash "$SCC_ROOT/scc" uninstall --bogus
   [ "$status" -ne 0 ]
 }
+
+@test "uninstall refuses to rm -rf an SCC_DIR that is not an scc install" {
+  mkdir -p "$BATS_TEST_TMPDIR/notscc"
+  : > "$BATS_TEST_TMPDIR/notscc/important.txt"
+  BIN_DIR="$BATS_TEST_TMPDIR/bin" SCC_DIR="$BATS_TEST_TMPDIR/notscc" \
+    run bash "$SCC_ROOT/scc" uninstall -y
+  [ "$status" -eq 0 ]
+  [ -d "$BATS_TEST_TMPDIR/notscc" ]
+  [ -e "$BATS_TEST_TMPDIR/notscc/important.txt" ]
+}

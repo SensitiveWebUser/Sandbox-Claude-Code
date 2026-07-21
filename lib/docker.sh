@@ -29,6 +29,7 @@ scc_ensure_image() {
 
 # Common, hardened args into the global ARGS array. $1 = firewall|open.
 scc_base_args() {
+  scc_guard_not_root
   ARGS=(
     --rm --init
     --hostname scc
@@ -59,7 +60,20 @@ scc_base_args() {
   if [[ "${SCC_GH_TOKEN:-0}" == 1 ]]; then
     ARGS+=(-e GH_TOKEN)
   fi
+  # If root was explicitly allowed on the host, tell the entrypoint too.
+  if [[ "${SCC_ALLOW_ROOT:-0}" == 1 ]]; then
+    ARGS+=(-e SCC_ALLOW_ROOT=1)
+  fi
   if [[ -n "$EXTRA_DOCKER_ARGS" ]]; then
+    # Host networking + firewall means init-firewall.sh rewrites the HOST's
+    # iptables (NET_ADMIN in the host netns), not just the container's. Loud,
+    # because a typo here has a spectacular blast radius.
+    if [[ "$1" == firewall ]]; then
+      case " $EXTRA_DOCKER_ARGS " in
+        *" --network host "*|*" --network=host "*|*" --net host "*|*" --net=host "*)
+          scc_warn "SCC_DOCKER_ARGS enables host networking with the firewall on: init-firewall.sh will modify the HOST iptables, not just the container's" ;;
+      esac
+    fi
     # Intentional word splitting for user-supplied extra args.
     # shellcheck disable=SC2206
     ARGS+=($EXTRA_DOCKER_ARGS)
@@ -87,10 +101,12 @@ scc_ssh_agent_args() {
 }
 
 # Clipboard forwarding for in-chat image paste. Default (auto) forwards the host
-# Wayland clipboard socket when present, a no-op on non-Wayland hosts. X11 is
-# forwarded only on explicit request (it has no isolation between clients).
-# --hardened turns the auto behavior off. Every mount is guarded by an existence
-# check, so a normal run never fails because of this.
+# Wayland clipboard socket when present, a no-op on non-Wayland hosts.
+# --hardened turns the auto behavior off. The whole X11 socket (which has NO
+# isolation between clients: any container app could snoop host input) is
+# forwarded ONLY on an explicit per-run opt-in (the --clipboard flag or
+# SCC_CLIPBOARD=on for this run), never from a sticky `clipboard = on` in a
+# config file. Every mount is guarded by an existence check.
 scc_clipboard_args() {
   local mode; mode="$(scc_resolve clipboard SCC_CLIPBOARD auto)"
   if [[ "$mode" == auto && "${SCC_HARDENED:-0}" == 1 ]]; then mode=off; fi
@@ -105,12 +121,15 @@ scc_clipboard_args() {
       return 0
     fi
   fi
-  if [[ "$mode" == on && -n "${DISPLAY:-}" && -d /tmp/.X11-unix ]]; then
+  # X11 fallback: only when the user opted in for THIS run (flag/env), not config.
+  if [[ "${SCC_CLIPBOARD:-}" == on && -n "${DISPLAY:-}" && -d /tmp/.X11-unix ]]; then
     ARGS+=(-v /tmp/.X11-unix:/tmp/.X11-unix:ro -e "DISPLAY=$DISPLAY")
     scc_warn "clipboard: forwarding X11 for paste (X11 has no isolation between clients)"
     return 0
   fi
-  [[ "$mode" == on ]] && scc_warn "clipboard: no host Wayland/X11 clipboard socket found to forward"
+  if [[ "$mode" == on ]]; then
+    scc_warn "clipboard: no Wayland socket to forward (X11 paste needs the explicit --clipboard flag)"
+  fi
   return 0
 }
 

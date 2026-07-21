@@ -40,7 +40,8 @@ lib/
   toolchains.sh          # scc_apply_toolchains: opt-in --with language layers
   project.sh             # trust-gated per-project .scc.conf
   commands/*.sh          # one cmd_<name> per subcommand (run, yolo, shell, login, update,
-                         #   self-update, rebuild, profiles, trust, uninstall, help)
+                         #   self-update, rebuild, profiles, init, trust, uninstall,
+                         #   version, help)
 Dockerfile               # base image debian:bookworm-slim (Claude Code native binary, no Node)
 docker/toolchains/       # opt-in language layers (--with) built on the base
 entrypoint.sh            # in-container: remap UID/GID, fix volume ownership, raise firewall, gosu drop
@@ -53,7 +54,7 @@ tests/                   # *.bats + helpers.bash + stubs/docker (docker stubbed,
 
 Control flow: `scc <cmd>` → source `lib/` + `commands/` → `scc_config_load` + resolve settings → OS/docker guards → `cmd_<name>` → `scc_base_args`/`scc_workspace_args` build `$ARGS` → `docker run … entrypoint.sh` → entrypoint sets up as root, `gosu`s to `node`, execs `claude` (or `bash`).
 
-**Config resolution:** built-in defaults < global config file (`~/.config/scc/config`, `$SCC_CONFIG` to override) < environment variables < CLI flags. The config parser uses a fixed key allowlist and is **never** `source`d/`eval`d (see `lib/config.sh`).
+**Config resolution:** built-in defaults < global config file (`~/.config/scc/config`, `$SCC_CONFIG` to override) < trusted per-project `.scc.conf` < environment variables < CLI flags. Both files are parsed by one shared reader (`scc_kv_parse`) with a fixed key allowlist and are **never** `source`d/`eval`d (see `lib/config.sh`). The default `image` is the published GHCR image (pull, falling back to a local build); `scc rebuild` always builds locally.
 
 **Edit loop:** `scc` sources `lib/` from *next to the script* when present, so **launcher/lib edits in the repo take effect immediately**, no reinstall. Only **image** changes (Dockerfile/entrypoint/firewall) still need `./install.sh` (to copy build files to `~/.scc`) followed by `scc rebuild`.
 
@@ -67,7 +68,7 @@ All of the originally agreed milestones are implemented and CI-validated:
 - **M2** `--ssh-agent`: forward the agent for signing/push, no private keys ever enter the container.
 - **M3** named profiles (`--profile`) and language toolchains (`--with gh,go,node,python,rust`).
 - **M4** trust-gated per-project `.scc.conf` (may only tighten, never loosen).
-- Plus `scc self-update`, and clipboard / `--screenshots` image input.
+- Plus version identity (`VERSION` + `scc version`), a version-aware `scc self-update`, `scc init` to scaffold config, GHCR image consumed by default, clipboard / `--screenshots` image input.
 
 Remaining ideas (not yet built): multi-arch GHCR image, an `scc doctor`. Update this list when scope changes.
 
@@ -88,13 +89,13 @@ SCC_FIREWALL=1 scc shell # exercise the firewall path
 
 These are the security properties the project exists to provide. `AGENTS.md` states them as hard rules. The summary:
 
-- **Least privilege in `scc`**: `--cap-drop ALL` + only the six caps the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL). Firewall path adds NET_ADMIN + NET_RAW. Plus `--security-opt no-new-privileges`, `--pids-limit`, `--init`. No `sudo` in the image.
+- **Least privilege in `scc`**: `--cap-drop ALL` + only the six caps the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL). Firewall path adds NET_ADMIN + NET_RAW. Plus `--security-opt no-new-privileges`, `--pids-limit`, `--init`. No `sudo` in the image. The agent never runs as uid 0 (running scc as host root is refused unless `SCC_ALLOW_ROOT=1`).
 - **Only the current directory is mounted by default** (`-v "$PWD:$PWD"`, same absolute path), plus `~/.gitconfig` read-only and the `scc-home` volume. SSH keys, the rest of `$HOME`, and host env are deliberately not shared. Opt-in flags may add narrow, announced mounts (`--ssh-agent`, `--with gh` token, `--screenshots`, clipboard forwarding), never by default. `guard_workdir` refuses `$HOME` or `/`.
-- **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. `SCC_FIREWALL=1|0` overrides. A trusted `.scc.conf` may only tighten it (enable).
+- **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. Base precedence: default < config < trusted-project tighten (on only) < `SCC_FIREWALL`. `--hardened` is then an absolute floor that forces it on even over an explicit `firewall=off`/`SCC_FIREWALL=0` (announced). A trusted `.scc.conf` tightens over config/default only; an explicit `SCC_FIREWALL` still wins.
 - **Firewall fails closed**: `init-firewall.sh` runs `set -euo pipefail`, fetches GitHub ranges *before* tightening policy, ends with a positive/negative reachability check that `exit 1`s on failure, and closes IPv6 entirely. Keep the verification step.
 - **Integrations grant capability, never secrets** (AGENTS 3.7): check-first, off by default, narrowest passthrough, no private keys in the container, announced when active.
-- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `self-update`, `rebuild`, `build`, `profiles`, `trust`, `uninstall`, `help`): anything else passes straight to `claude`.
+- Reserved subcommands (`yolo`, `shell`, `login`, `update`, `self-update`, `rebuild`, `build`, `profiles`, `init`, `trust`, `uninstall`, `version`, `help`, plus `--version`/`-V`): anything else passes straight to `claude`.
 
 ## Key env vars (all optional)
 
-`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run`, escape hatch for extra mounts/limits), `SCC_TOOLCHAINS`, `SCC_CLIPBOARD`, `SCC_PROFILE`, `SCC_ALLOW_ANY_DIR`, `SCC_SKIP_OS_CHECK`, `SCC_TRUST_PROJECT` (auto-trust a `.scc.conf`), `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `SCC_REPO`/`SCC_VERSION`/`SCC_BOOTSTRAP_REF` (used by the installer and `self-update`), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var overrides the matching config-file key (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`, `SCC_TOOLCHAINS`→`toolchains`, `SCC_CLIPBOARD`→`clipboard`, `SCC_PROFILE`→`profile`).
+`SCC_FIREWALL`, `FIREWALL_EXTRA_DOMAINS` (comma-separated), `SCC_DOCKER_ARGS` (raw args appended to `docker run`, escape hatch for extra mounts/limits), `SCC_TOOLCHAINS`, `SCC_CLIPBOARD`, `SCC_PROFILE`, `SCC_ALLOW_ANY_DIR`, `SCC_ALLOW_ROOT` (permit running as host root, the agent would run as uid 0), `SCC_SKIP_OS_CHECK`, `SCC_TRUST_PROJECT` (honor a `.scc.conf` for this run only, not recorded), `SCC_IMAGE`, `SCC_DIR`, `SCC_VOLUME`, `SCC_PIDS_LIMIT`, `SCC_CONFIG` (override config-file path), `SCC_REPO`/`SCC_VERSION` (used by the installer and `self-update`), `CLAUDE_CODE_OAUTH_TOKEN` (passed through when set). Each config-backed env var overrides the matching config-file key (`SCC_IMAGE`→`image`, `SCC_VOLUME`→`volume`, `SCC_PIDS_LIMIT`→`pids_limit`, `SCC_FIREWALL`→`firewall`, `FIREWALL_EXTRA_DOMAINS`→`extra_domains`, `SCC_DOCKER_ARGS`→`docker_args`, `SCC_TOOLCHAINS`→`toolchains`, `SCC_CLIPBOARD`→`clipboard`, `SCC_PROFILE`→`profile`).

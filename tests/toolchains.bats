@@ -35,6 +35,14 @@ _mock_docker() {
   [ "$IMAGE" = "scc:latest" ]
 }
 
+@test "--with merges with configured toolchains rather than replacing them" {
+  _mock_docker
+  SCC_CFG_toolchains=python
+  scc_take_flags --with rust
+  scc_apply_toolchains
+  [ "$IMAGE" = "scc:tc-python-rust" ]
+}
+
 @test "unknown toolchain is rejected" {
   scc_take_flags --with bogus
   run scc_apply_toolchains

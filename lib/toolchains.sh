@@ -11,9 +11,13 @@ SCC_TOOLCHAINS_KNOWN=(gh go node python rust)
 # build the layered variant image once if it is missing, and point IMAGE at it.
 # A no-op when none are requested.
 scc_apply_toolchains() {
-  local want="${SCC_WITH:-}"
-  [ -n "$want" ] || want="$(scc_resolve toolchains SCC_TOOLCHAINS "")"
-  [ -n "$want" ] || return 0
+  # Merge the per-run --with flag WITH any config/project 'toolchains', so a flag
+  # adds to the configured set rather than replacing it. Dedup + canonical order
+  # happen below, so overlap and ordering do not matter.
+  local flag="${SCC_WITH:-}" cfg
+  cfg="$(scc_resolve toolchains SCC_TOOLCHAINS "")"
+  local want="$flag,$cfg"
+  [ -n "${want//[, ]/}" ] || return 0
 
   # Validate every request, then emit them in a canonical order so the image
   # tag is stable regardless of how they were listed.

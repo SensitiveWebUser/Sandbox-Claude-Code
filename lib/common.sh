@@ -83,6 +83,27 @@ scc_take_flags() {
   done
 }
 
+# Refuse to run the agent as root. scc passes the host UID/GID into the
+# container; if the host user is root that becomes uid 0 inside, running the
+# agent as root with the retained caps. Least privilege says don't. Override
+# with SCC_ALLOW_ROOT=1 (forwarded to the entrypoint, which enforces the same).
+scc_guard_not_root() {
+  [[ "${SCC_ALLOW_ROOT:-0}" == "1" ]] && return 0
+  [[ "$(id -u)" == "0" ]] \
+    && scc_die "refusing to run as root: the agent would run as uid 0 in the container with capabilities. Run scc as a normal user (override: SCC_ALLOW_ROOT=1)."
+  return 0
+}
+
+# True if a directory is safe for uninstall to rm -rf: never empty, $HOME, or
+# /, and it must actually look like an scc install (carry scc's own files), so
+# a stray SCC_DIR=$HOME can never wipe the home directory.
+scc_dir_is_scc_install() {
+  local d="$1"
+  [[ -n "$d" ]] || return 1
+  case "$d" in /|"$HOME"|"$HOME"/) return 1 ;; esac
+  [[ -f "$d/Dockerfile" || -d "$d/lib" || -f "$d/entrypoint.sh" ]]
+}
+
 # Refuse to mount $HOME or / into the sandbox.
 scc_guard_workdir() {
   [[ "${SCC_ALLOW_ANY_DIR:-0}" == "1" ]] && return 0

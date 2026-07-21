@@ -5,7 +5,7 @@
 ![Launcher: pure Bash, no deps](https://img.shields.io/badge/launcher-pure%20Bash%2C%20no%20deps-89e051)
 ![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue)
 
-Run Claude Code inside an isolated Docker container, from any repo, with one command. `cd` into a project, type `scc`, and the agent runs against **that directory and nothing else on your machine**. You log in once, and it keeps itself current on its own.
+Run Claude Code inside an isolated Docker container, from any repo, with one command. `cd` into a project, type `scc`, and the agent runs against **that directory and nothing else on your machine**. You log in once, and Claude Code keeps itself up to date inside the sandbox (update scc itself with `scc self-update`).
 
 > ⚠️ **Independent project, not affiliated with Anthropic.** `scc` is an unofficial community wrapper. It does **not** own, control, bundle, or represent Claude Code or Anthropic. It installs Anthropic's official CLI at runtime and simply runs it in a container. "Claude" and "Claude Code" are Anthropic's. Your use of Claude Code is governed by Anthropic's terms. Provided as-is, no warranty (see [License](#license)).
 
@@ -45,10 +45,11 @@ less install-remote.sh && bash install-remote.sh
 **First run:**
 
 ```bash
-scc rebuild                 # build the image (a few minutes, first time only)
 scc login                   # one-time browser login, then /exit
-cd ~/some/repo && scc       # daily use
+cd ~/some/repo && scc       # first run pulls the published image (or builds locally), then daily use
 ```
+
+The first `scc` pulls the prebuilt image from GHCR. If the pull fails (offline, or the package is private) it builds locally from the Dockerfile instead. To force a local build at any time, run `scc rebuild` (a few minutes).
 
 `scc login` uses host networking so Claude Code's localhost OAuth callback works, and stores credentials in the `scc-home` volume for reuse. If browser login misbehaves, run `claude setup-token` where you have a browser and export `CLAUDE_CODE_OAUTH_TOKEN`. `scc` passes it through automatically.
 
@@ -72,14 +73,16 @@ Anything that is not a reserved subcommand is passed straight to `claude`.
 |---|---|---|
 | `scc [args...]` | Claude Code in the current repo (permission prompts on) | `scc "fix the failing tests"` |
 | `scc yolo [args...]` | `--dangerously-skip-permissions`, firewall **on** by default | `scc yolo -c` |
-| `scc shell` | A plain shell inside the sandbox, for poking around | `scc shell` |
+| `scc shell [cmd...]` | A shell inside the sandbox, or run `cmd...` in it | `scc shell claude doctor` |
+| `scc init` | Write a starter `.scc.conf` here (`--global` for the config file) | `scc init` |
 | `scc login` | One-time browser login (persists in the home volume) | `scc login` |
 | `scc update` | Update Claude Code (inside the sandbox) to the newest release | `scc update` |
-| `scc self-update` | Update scc itself to the latest release | `scc self-update` |
-| `scc rebuild` | Rebuild the image (fresh base OS + baked-in install) | `scc rebuild` |
+| `scc self-update` | Update scc itself (version-aware; `--check`, `-y`) | `scc self-update --check` |
+| `scc rebuild` | Rebuild the image locally (alias: `scc build`) | `scc rebuild` |
 | `scc profiles` | List the home-volume profiles that exist | `scc profiles` |
 | `scc trust` | Trust this repo's `.scc.conf` so scc will honor it | `scc trust` |
 | `scc uninstall` | Remove scc (add `--all` to also drop the volume + image) | `scc uninstall --all` |
+| `scc version` | Print scc's own version | `scc version` |
 | `scc help` | Show usage | `scc help` |
 
 ## Flags
@@ -101,15 +104,15 @@ Everything works with zero configuration. For defaults that stick, drop a `key =
 
 | Key | Example | Meaning |
 |---|---|---|
-| `image` | `scc:latest` | Image to run |
+| `image` | `ghcr.io/…:latest` | Image to run (default: the published GHCR image; falls back to a local build) |
 | `volume` | `scc-home` | Home-volume name (login + Claude install) |
 | `pids_limit` | `4096` | PID cap (fork-bomb guard) |
-| `firewall` | `auto` | Default egress firewall: `auto` (off, on for `yolo`), `on`, or `off` |
+| `firewall` | `auto` | Default egress firewall: `auto` (off, on for `yolo`), `on`, or `off`. `--hardened` and a trusted project can force it on |
 | `extra_domains` | `crates.io,static.crates.io` | Extra domains the firewall allows |
 | `docker_args` | `--memory 8g` | Raw arguments appended to `docker run` |
 | `profile` | `work` | Default profile |
-| `toolchains` | `python,node` | Default toolchains to layer in |
-| `clipboard` | `auto` | In-chat image paste: `auto` (on for Wayland), `on` (also X11), or `off` |
+| `toolchains` | `python,node` | Default toolchains to layer in (`--with` adds to this) |
+| `clipboard` | `auto` | In-chat image paste: `auto` (Wayland only), `on` (Wayland), or `off`. X11 needs the explicit `--clipboard` flag |
 
 ```ini
 # ~/.config/scc/config
@@ -127,11 +130,16 @@ Values resolve as **built-in defaults < config file < project file < environment
 | `SCC_FIREWALL=1\|0` | Force the egress firewall on/off (default: off for `scc`, on for `scc yolo`) |
 | `FIREWALL_EXTRA_DOMAINS=a.com,b.org` | Extra domains the firewall allows |
 | `SCC_DOCKER_ARGS="..."` | Extra arguments appended to `docker run` |
-| `SCC_ALLOW_ANY_DIR=1` | Permit running from `$HOME` or `/` (not advised) |
-| `SCC_SKIP_OS_CHECK=1` | Skip the operating-system support check |
-| `SCC_TRUST_PROJECT=1` | Auto-trust a repo's `.scc.conf` (for automation) |
+| `SCC_IMAGE`, `SCC_VOLUME`, `SCC_PIDS_LIMIT` | Override the matching config keys for one run |
+| `SCC_TOOLCHAINS=python,node` | Default toolchains (like the config key; `--with` adds to it) |
+| `SCC_PROFILE=work` | Select a profile (like `--profile`) |
 | `SCC_CLIPBOARD=auto\|on\|off` | Clipboard image paste (see the config `clipboard` key) |
+| `SCC_ALLOW_ANY_DIR=1` | Permit running from `$HOME` or `/` (not advised) |
+| `SCC_ALLOW_ROOT=1` | Permit running as host root (the agent would run as uid 0; not advised) |
+| `SCC_SKIP_OS_CHECK=1` | Skip the operating-system support check |
+| `SCC_TRUST_PROJECT=1` | Honor a repo's `.scc.conf` for this run only (automation; not recorded) |
 | `SCC_CONFIG=path` | Use a different config-file path |
+| `SCC_REPO=owner/repo`, `SCC_VERSION=vX.Y.Z` | Repo/tag for `self-update` and the installer |
 | `CLAUDE_CODE_OAUTH_TOKEN=...` | Passed through when set (login fallback) |
 
 ---
@@ -156,7 +164,7 @@ The clipboard tools (`wl-clipboard`, `xclip`) are baked into the image, so no re
 
 Interactive runs default to full network access. `scc yolo` defaults to a default-deny allowlist, because an agent that skips permission prompts should not also have unrestricted egress. Force it either way with `SCC_FIREWALL=1` or `SCC_FIREWALL=0`.
 
-Allowed out of the box: DNS (only to the resolvers in the container's `resolv.conf`), GitHub's published IP ranges, Anthropic/Claude endpoints, the npm registry, and PyPI. Add more with `FIREWALL_EXTRA_DOMAINS=crates.io,static.crates.io scc yolo`. Two honest limits: domains are resolved to IPs once at container start, so a CDN rotating addresses mid-session can break an allowed host (restart to refresh), and DNS itself remains a narrow exfiltration side channel.
+Allowed out of the box: DNS (only to the resolvers in the container's `resolv.conf`), GitHub's published IP ranges, Anthropic/Claude endpoints (`api.anthropic.com`, `claude.ai`, `statsig.anthropic.com`), Claude Code's telemetry/error endpoints (`statsig.com`, `sentry.io`), the npm registry, and PyPI (`registry.npmjs.org`, `pypi.org`, `files.pythonhosted.org`). The exact list is the `ALLOWED_DOMAINS` line in [`init-firewall.sh`](./init-firewall.sh). Add more with `FIREWALL_EXTRA_DOMAINS=crates.io,static.crates.io scc yolo`. Two honest limits: domains are resolved to IPs once at container start, so a CDN rotating addresses mid-session can break an allowed host (restart to refresh), and DNS itself remains a narrow exfiltration side channel.
 
 ### Hardened mode
 
@@ -205,6 +213,8 @@ A repo can carry a `.scc.conf` so it "just works" for anyone who clones it. Beca
 - It is **ignored until you trust it.** An interactive run shows the file and asks. A non-interactive run ignores it. `scc trust` (after you have read it) records its checksum so it is honored from then on. Editing the file re-triggers the prompt.
 - It may set only a **tiny, safe subset**: `toolchains`, and `firewall` (which it may only turn **on**). It can never set `image`, `volume`, `docker_args`, mounts, or widen egress, so a hostile repo cannot loosen the sandbox.
 
+Scaffold one with `scc init`: it writes a commented `.scc.conf` here and trusts it for you (collaborators who clone still get the trust prompt). `scc init --global` scaffolds the global config file instead.
+
 ```ini
 # .scc.conf committed in a repo
 toolchains = python,node
@@ -217,7 +227,7 @@ Two things update independently: **Claude Code** (inside the sandbox) and **scc*
 
 Claude Code, strongest first: its native install auto-updates in the background into the persisted volume, so ordinary use keeps you current. `scc update` forces the newest release right now, and `scc rebuild` refreshes the base image and the baked-in install (used by fresh volumes). For reproducibility instead of freshness, pin a version in the Dockerfile (`... install.sh | bash -s -- <version>`) and add `ENV DISABLE_AUTOUPDATER=1`.
 
-scc itself: `scc self-update` reinstalls the latest GitHub release (the same pinned-tarball path as the `curl` install). Pin a specific one with `SCC_VERSION=vX.Y.Z scc self-update`.
+scc itself: `scc self-update` compares your installed version against the latest GitHub release and, if newer, reinstalls it (fetching the installer from the resolved release tag, never a moving branch, and downloading the matching pinned tarball). It shows what it will change and prompts first; `--check` previews without changing anything and `-y` skips the prompt. Afterwards it refreshes the image (pulls the registry image, or reminds you to `scc rebuild` a local one) so image-side fixes take effect. Pin a specific release with `SCC_VERSION=vX.Y.Z scc self-update`. See your version with `scc version`.
 
 ### What the sandbox can and cannot touch
 
@@ -253,6 +263,8 @@ bats tests
 ```
 
 CI runs shellcheck + bats, a `docker build` with base and hardened runtime smoke tests, and a matrix that builds and smoke-tests each toolchain layer. Contributions follow the [CLA](./CLA.md). Build rules live in [AGENTS.md](./AGENTS.md).
+
+**Releasing:** bump the `VERSION` file to the new version in the release commit, then push a matching `vX.Y.Z` tag. The release workflow verifies `VERSION` equals the tag (so an installed copy reports its real version), builds and pushes the GHCR image, and cuts the GitHub release.
 
 ## License
 

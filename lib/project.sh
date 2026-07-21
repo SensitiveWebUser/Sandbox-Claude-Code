@@ -17,43 +17,49 @@ scc_file_sha256() {
   else return 1; fi
 }
 
+# Trust file lines are "<sha256>  <abs-path>". Match on the whole path field
+# (everything after the hash), not a substring, so /a/b never matches /a/bc.
 scc_project_is_trusted() {  # $1=abs-path $2=sha256
   [ -f "$SCC_TRUST_FILE" ] && grep -qxF "$2  $1" "$SCC_TRUST_FILE"
+}
+
+# Drop every entry for a path (any hash), robustly: strip the leading
+# "<hash>  " and compare the remainder to the path, so paths with spaces and
+# path-prefix collisions are handled correctly.
+scc_project_trust_drop() {  # $1=abs-path  (echoes remaining lines)
+  [ -f "$SCC_TRUST_FILE" ] || return 0
+  awk -v p="$1" '{ line=$0; sub(/^[^ ]+  /, "", line); if (line != p) print }' "$SCC_TRUST_FILE"
 }
 
 scc_project_trust_add() {   # $1=abs-path $2=sha256
   mkdir -p "$(dirname "$SCC_TRUST_FILE")"
   if [ -f "$SCC_TRUST_FILE" ]; then          # drop any stale entry for this path
-    grep -vF "  $1" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
-    mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
+    scc_project_trust_drop "$1" > "$SCC_TRUST_FILE.tmp" && mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
   fi
   printf '%s  %s\n' "$2" "$1" >> "$SCC_TRUST_FILE"
 }
 
+# Handler for a trusted project file. firewall is enable-only (a project may
+# only tighten egress, never loosen it); other allowed keys set SCC_PROJ_<key>.
+scc_proj_set() {  # $1=key $2=val  (key is already allowlist-checked)
+  if [ "$1" = firewall ]; then
+    case "$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')" in
+      on|1|true|yes) SCC_PROJ_FW_ON=1 ;;
+      *) scc_warn "$SCC_PROJECT_FILE: firewall may only be enabled by a project, not set to '$2', ignoring" ;;
+    esac
+  else
+    printf -v "SCC_PROJ_$1" '%s' "$2"
+  fi
+}
+
 # Parse a trusted project file into SCC_PROJ_<key> for allowed keys only.
 scc_project_parse() {  # $1=file
-  local line key val
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="${line%%#*}"; line="$(scc_trim "$line")"
-    [ -z "$line" ] && continue
-    case "$line" in *=*) ;; *) scc_warn "$SCC_PROJECT_FILE: ignoring malformed line: $line"; continue ;; esac
-    key="$(scc_trim "${line%%=*}")"
-    val="$(scc_strip_quotes "$(scc_trim "${line#*=}")")"
-    if ! scc_in_list "$key" "${SCC_PROJ_ALLOWED[@]}"; then
-      scc_warn "$SCC_PROJECT_FILE: ignoring '$key' (not allowed in project config)"
-    elif [ "$key" = firewall ]; then
-      case "$(printf '%s' "$val" | tr '[:upper:]' '[:lower:]')" in
-        on|1|true|yes) SCC_PROJ_FW_ON=1 ;;
-        *) scc_warn "$SCC_PROJECT_FILE: firewall may only be enabled by a project, not set to '$val', ignoring" ;;
-      esac
-    else
-      printf -v "SCC_PROJ_${key}" '%s' "$val"
-    fi
-  done < "$1"
+  scc_kv_parse "$1" "$SCC_PROJECT_FILE" scc_proj_set "${SCC_PROJ_ALLOWED[@]}"
 }
 
 # Load $PWD/.scc.conf if present and trusted. Prompts when interactive. Ignores
-# (fail-safe) when not. SCC_TRUST_PROJECT=1 auto-trusts (for automation).
+# (fail-safe) when not. SCC_TRUST_PROJECT=1 honors it for this run only, without
+# recording persistent trust (so one-off automation cannot silently whitelist).
 scc_project_load() {
   SCC_PROJ_FW_ON=0
   local file="$PWD/$SCC_PROJECT_FILE"
@@ -66,8 +72,7 @@ scc_project_load() {
     scc_project_parse "$file"; return 0
   fi
   if [ "${SCC_TRUST_PROJECT:-0}" = 1 ]; then
-    scc_project_trust_add "$file" "$hash"
-    scc_info "$SCC_PROJECT_FILE trusted via SCC_TRUST_PROJECT=1"
+    scc_info "$SCC_PROJECT_FILE honored for this run only (SCC_TRUST_PROJECT=1), not recorded"
     scc_project_parse "$file"; return 0
   fi
   if [ -t 0 ] && [ -t 2 ]; then

@@ -21,6 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The VERSION file is what an installed scc reports and what self-update
+      # compares against. It must match the tag, or a source-archive install
+      # would misreport its version. Bump VERSION in the release commit.
+      - name: Verify VERSION matches the tag
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          file="$(tr -d '[:space:]' < VERSION)"
+          if [ "$file" != "$tag" ]; then
+            echo "VERSION ('$file') does not match tag ('$tag'). Bump VERSION before tagging." >&2
+            exit 1
+          fi
+
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 

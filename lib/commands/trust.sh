@@ -11,11 +11,14 @@ cmd_trust() {
       if [ -f "$SCC_TRUST_FILE" ]; then cat "$SCC_TRUST_FILE"; else scc_info "no trusted project configs"; fi
       ;;
     --remove|--untrust)
+      local before=0 after=0
       if [ -f "$SCC_TRUST_FILE" ]; then
-        grep -vF "  $file" "$SCC_TRUST_FILE" > "$SCC_TRUST_FILE.tmp" 2>/dev/null || true
-        mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
+        before=$(($(wc -l < "$SCC_TRUST_FILE")))
+        scc_project_trust_drop "$file" > "$SCC_TRUST_FILE.tmp" && mv "$SCC_TRUST_FILE.tmp" "$SCC_TRUST_FILE"
+        after=$(($(wc -l < "$SCC_TRUST_FILE")))
       fi
-      scc_info "removed trust for $file"
+      if [ "$before" -ne "$after" ]; then scc_info "removed trust for $file"
+      else scc_info "no trust entry for $file"; fi
       ;;
     -h|--help)
       cat <<'EOF'

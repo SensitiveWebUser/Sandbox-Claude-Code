@@ -46,6 +46,17 @@ _mksock() {
   [[ " ${ARGS[*]} " != *scc-wayland* ]]
 }
 
+@test "config clipboard=on does NOT forward X11 (needs the explicit flag)" {
+  SCC_CFG_clipboard=on DISPLAY=:0 scc_clipboard_args
+  [[ " ${ARGS[*]} " != *".X11-unix"* ]]
+}
+
+@test "explicit SCC_CLIPBOARD=on forwards X11 when the socket dir exists" {
+  [ -d /tmp/.X11-unix ] || skip "no /tmp/.X11-unix on this host"
+  SCC_CLIPBOARD=on DISPLAY=:0 scc_clipboard_args
+  [[ " ${ARGS[*]} " == *".X11-unix"* ]]
+}
+
 @test "--screenshots mounts an existing dir read-only" {
   local d="$BATS_TEST_TMPDIR/shots"; mkdir -p "$d"
   SCC_SCREENSHOTS="$d" scc_screenshots_args
