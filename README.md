@@ -65,6 +65,16 @@ Interactive runs default to full network access; `scc yolo` defaults to a defaul
 
 Allowed out of the box: DNS (only to the resolvers in the container's `resolv.conf`), GitHub's published IP ranges, Anthropic/Claude endpoints, the npm registry, and PyPI. Add more with `FIREWALL_EXTRA_DOMAINS=crates.io,static.crates.io scc yolo`. Two honest limits: domains are resolved to IPs once at container start, so a CDN rotating addresses mid-session can break an allowed host (restart to refresh), and DNS itself remains a narrow exfiltration side channel.
 
+## Hardened mode
+
+The image already drops all Linux capabilities bar the few the entrypoint needs, runs with `no-new-privileges`, and ships with setuid/setgid bits stripped. For a stricter run, add `--hardened`:
+
+```bash
+scc --hardened "review this untrusted repo"
+```
+
+It makes the container's root filesystem **read-only** (only your repo, the home volume, and small `tmpfs` mounts stay writable) and turns the egress firewall **on**. It's opt-in because it can restrict what an agent may write or reach. Under a read-only rootfs the entrypoint can't edit `/etc/passwd`, so it runs as your numeric host UID directly — no private keys or extra host state involved.
+
 ## Configuration file
 
 Everything works with zero configuration. When you want defaults that stick, drop a file at `~/.config/scc/config` (override the path with `$SCC_CONFIG`). It's a simple `key = value` file — parsed with a fixed key allowlist and never executed as code:

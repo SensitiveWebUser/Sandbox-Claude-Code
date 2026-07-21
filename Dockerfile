@@ -21,6 +21,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # CDNs/proxies/VM NAT ("Ign ... Remote end closed connection").
 # libstdc++6/libgcc-s1: the native binary links them; explicit so the slim base
 # is guaranteed to carry them. bind9-dnsutils provides dig (dnsutils is transitional).
+# The final find strips setuid/setgid bits: the sandboxed agent needs none, and
+# it removes a local privilege-escalation path (gosu runs as root, not setuid).
 RUN printf 'Acquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\nAcquire::http::No-Cache "true";\n' \
         > /etc/apt/apt.conf.d/80-scc-robust \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -30,7 +32,8 @@ RUN printf 'Acquire::Retries "5";\nAcquire::http::Pipeline-Depth "0";\nAcquire::
         libstdc++6 libgcc-s1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && gosu nobody true
+    && gosu nobody true \
+    && find / -xdev -perm /6000 -type f -exec chmod -s {} +
 
 # This base has no 'node' user (the old node:22 base provided one), so create
 # it at uid/gid 1000. The entrypoint remaps it to the host UID/GID on start.

@@ -47,6 +47,14 @@ scc_base_args() {
     ARGS+=(-e SCC_FIREWALL=1 -e "FIREWALL_EXTRA_DOMAINS=$EXTRA_DOMAINS"
            --cap-add NET_ADMIN --cap-add NET_RAW)
   fi
+  # --hardened: read-only rootfs + writable tmpfs only. The entrypoint detects
+  # the read-only /etc and remaps via numeric uid:gid instead of editing passwd.
+  if [[ "${SCC_HARDENED:-0}" == 1 ]]; then
+    ARGS+=(--read-only
+           --tmpfs /tmp:rw,nosuid,nodev,noexec
+           --tmpfs /var/tmp:rw,nosuid,nodev
+           --tmpfs /run:rw,nosuid,nodev)
+  fi
   if [[ -n "$EXTRA_DOCKER_ARGS" ]]; then
     # Intentional word splitting for user-supplied extra args.
     # shellcheck disable=SC2206

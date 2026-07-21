@@ -61,7 +61,7 @@ case "$cmd" in
   rebuild|build)  cmd_rebuild ;;
   update)         cmd_update ;;
   login)          cmd_login ;;
-  shell|sh)       cmd_shell ;;
+  shell|sh)       shift; cmd_shell "$@" ;;
   yolo)           shift; cmd_yolo "$@" ;;
   *)              cmd_run "$@" ;;   # everything else passes straight to claude
 esac

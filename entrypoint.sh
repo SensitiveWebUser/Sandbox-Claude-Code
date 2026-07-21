@@ -10,8 +10,17 @@ TARGET_UID="${HOST_UID:-1000}"
 TARGET_GID="${HOST_GID:-$TARGET_UID}"
 
 if [ "$(id -u)" = "0" ]; then
-    [ "$(id -g node)" = "$TARGET_GID" ] || groupmod -o -g "$TARGET_GID" node
-    [ "$(id -u node)" = "$TARGET_UID" ] || usermod  -o -u "$TARGET_UID" node
+    run_as=node
+    # Normally remap 'node' to the host UID/GID by editing /etc/passwd. Under a
+    # read-only rootfs (scc --hardened) /etc can't be written, so run as the
+    # numeric host uid:gid instead (HOME is set via ENV, so tools still work).
+    if touch /etc/.scc-rwtest 2>/dev/null; then
+        rm -f /etc/.scc-rwtest
+        [ "$(id -g node)" = "$TARGET_GID" ] || groupmod -o -g "$TARGET_GID" node
+        [ "$(id -u node)" = "$TARGET_UID" ] || usermod  -o -u "$TARGET_UID" node
+    else
+        run_as="${TARGET_UID}:${TARGET_GID}"
+    fi
 
     if [ "$(stat -c %u /home/node)" != "$TARGET_UID" ] || \
        [ "$(stat -c %g /home/node)" != "$TARGET_GID" ]; then
@@ -22,7 +31,7 @@ if [ "$(id -u)" = "0" ]; then
         /usr/local/bin/init-firewall.sh
     fi
 
-    exec gosu node "$@"
+    exec gosu "$run_as" "$@"
 fi
 
 # Already non-root (e.g. started with --user): nothing to set up.

@@ -13,6 +13,10 @@ From inside a project directory:
                        The egress firewall is ON by default in this mode.
   scc shell            Plain shell inside the sandbox (debugging)
 
+Run flags (before claude args, e.g. `scc --hardened "fix the tests"`):
+  --hardened           Max lockdown: read-only rootfs + tmpfs + firewall on.
+                       Opt-in; may restrict what the agent can write or reach.
+
 Management:
   scc login            One-time browser login (persists in the home volume)
   scc update           Update Claude Code to the newest release right now
