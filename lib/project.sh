@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2034  # SCC_PROJ_FW_ON is consumed by lib/firewall.sh
 # scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/project.sh: per-project .scc.conf, trust-gated. A cloned repo is untrusted
 # input, so its .scc.conf is ignored until you trust it, and it may set only a

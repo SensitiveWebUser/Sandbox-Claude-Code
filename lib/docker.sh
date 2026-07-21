@@ -51,9 +51,9 @@ scc_base_args() {
   # the read-only /etc and remaps via numeric uid:gid instead of editing passwd.
   if [[ "${SCC_HARDENED:-0}" == 1 ]]; then
     ARGS+=(--read-only
-           --tmpfs /tmp:rw,nosuid,nodev,noexec
-           --tmpfs /var/tmp:rw,nosuid,nodev
-           --tmpfs /run:rw,nosuid,nodev)
+           --tmpfs "/tmp:rw,nosuid,nodev,noexec"
+           --tmpfs "/var/tmp:rw,nosuid,nodev"
+           --tmpfs "/run:rw,nosuid,nodev")
   fi
   if [[ -n "$EXTRA_DOCKER_ARGS" ]]; then
     # Intentional word splitting for user-supplied extra args.

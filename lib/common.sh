@@ -58,6 +58,7 @@ scc_guard_os() {
 
 # Peel leading scc-level flags (e.g. --hardened) off a command's args. Sets
 # SCC_HARDENED and leaves the rest in the SCC_ARGV array. `--` ends scc flags.
+# shellcheck disable=SC2034  # these are consumed by sibling modules (docker.sh, commands, toolchains)
 scc_take_flags() {
   SCC_HARDENED=0
   SCC_SSH_AGENT=0
