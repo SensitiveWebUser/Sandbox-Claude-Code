@@ -18,5 +18,8 @@ cmd_self_update() {
   # downloads that pinned tarball, and reinstalls. exec so we do not read our
   # own launcher file while install.sh is replacing it. SCC_VERSION/SCC_REPO
   # pass through the environment to pin a release or a fork.
+  # The single quotes are intentional: $SCC_SELFUPDATE_URL must expand inside
+  # the inner bash (passed via env), not in this shell.
+  # shellcheck disable=SC2016
   exec env SCC_SELFUPDATE_URL="$url" bash -c 'set -o pipefail; curl -fsSL "$SCC_SELFUPDATE_URL" | bash'
 }
