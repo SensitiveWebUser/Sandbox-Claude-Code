@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # lib/docker.sh: assemble the hardened `docker run` args and run it.
 # Reads globals set by the dispatcher (IMAGE, VOLUME, PIDS_LIMIT, EXTRA_*,
@@ -13,8 +13,8 @@ scc_build() {
   docker build --pull -t "$IMAGE" "$SCC_BUILD_DIR"
 }
 
-# Ensure $IMAGE is available: present -> noop; namespaced (a/b) -> pull (fall
-# back to build); bare tag (scc:latest) -> build.
+# Ensure $IMAGE is available: present -> noop, namespaced (a/b) -> pull (fall
+# back to build), bare tag (scc:latest) -> build.
 scc_ensure_image() {
   docker image inspect "$IMAGE" >/dev/null 2>&1 && return 0
   if [[ "$IMAGE" == */* ]]; then
@@ -22,7 +22,7 @@ scc_ensure_image() {
     docker pull "$IMAGE" && return 0
     [[ -f "$SCC_BUILD_DIR/Dockerfile" ]] \
       || scc_die "could not pull $IMAGE and no Dockerfile to build from"
-    scc_warn "pull failed; building $IMAGE locally instead"
+    scc_warn "pull failed, building $IMAGE locally instead"
   fi
   scc_build
 }
@@ -64,7 +64,7 @@ scc_base_args() {
 
 # Mount ONLY the current directory, at the same absolute path as on the host.
 # --ssh-agent: forward the SSH agent so in-sandbox git can sign commits and
-# push. The private key never enters the container; the agent (on the host)
+# push. The private key never enters the container. The agent (on the host)
 # performs the signing.
 scc_ssh_agent_args() {
   [[ -n "${SSH_AUTH_SOCK:-}" && -S "$SSH_AUTH_SOCK" ]] \
@@ -72,13 +72,13 @@ scc_ssh_agent_args() {
   scc_info "--ssh-agent: forwarding your SSH agent for commit signing and push (key stays on the host)"
   ARGS+=(-v "$SSH_AUTH_SOCK:/run/scc-ssh-agent" -e SSH_AUTH_SOCK=/run/scc-ssh-agent)
   # SSH commit signing needs the public key file present. Mount only the public
-  # key (not secret); the agent holds the private half.
+  # key (not secret). The agent holds the private half.
   if [[ "$(git config --get gpg.format 2>/dev/null)" == "ssh" ]]; then
     local key; key="$(git config --get user.signingkey 2>/dev/null || true)"
     if [[ -n "$key" && -f "$key" ]]; then
       ARGS+=(-v "$key:$key:ro")
     elif [[ -n "$key" ]]; then
-      scc_warn "user.signingkey '$key' is not a readable file; commit signing may fail in the sandbox"
+      scc_warn "user.signingkey '$key' is not a readable file, so commit signing may fail in the sandbox"
     fi
   fi
 }
@@ -99,7 +99,7 @@ scc_workspace_args() {
   fi
 }
 
-# Assemble and exec a workspace run. $1 = mode (firewall|open); rest = command.
+# Assemble and exec a workspace run. $1 = mode (firewall|open), rest = command.
 scc_run_in_workspace() {
   local mode="$1"; shift
   scc_guard_workdir

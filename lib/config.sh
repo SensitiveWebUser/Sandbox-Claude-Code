@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # lib/config.sh: global config (key = value). Parsed with a fixed allowlist and
 # never sourced/eval'd, so it can set only known values, never run code.

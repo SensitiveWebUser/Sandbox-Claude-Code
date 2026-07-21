@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# --profile: select a separate home volume; `profiles` lists them.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
+# --profile: select a separate home volume. `profiles` lists them.
 load helpers
 
 setup() {

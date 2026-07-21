@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/project.sh: per-project .scc.conf, trust-gated. A cloned repo is untrusted
 # input, so its .scc.conf is ignored until you trust it, and it may set only a
 # safe subset of keys (never anything that could loosen the sandbox).
@@ -43,7 +43,7 @@ scc_project_parse() {  # $1=file
     elif [ "$key" = firewall ]; then
       case "$(printf '%s' "$val" | tr '[:upper:]' '[:lower:]')" in
         on|1|true|yes) SCC_PROJ_FW_ON=1 ;;
-        *) scc_warn "$SCC_PROJECT_FILE: firewall may only be enabled by a project, not set to '$val'; ignoring" ;;
+        *) scc_warn "$SCC_PROJECT_FILE: firewall may only be enabled by a project, not set to '$val', ignoring" ;;
       esac
     else
       printf -v "SCC_PROJ_${key}" '%s' "$val"
@@ -51,7 +51,7 @@ scc_project_parse() {  # $1=file
   done < "$1"
 }
 
-# Load $PWD/.scc.conf if present and trusted. Prompts when interactive; ignores
+# Load $PWD/.scc.conf if present and trusted. Prompts when interactive. Ignores
 # (fail-safe) when not. SCC_TRUST_PROJECT=1 auto-trusts (for automation).
 scc_project_load() {
   SCC_PROJ_FW_ON=0
@@ -59,7 +59,7 @@ scc_project_load() {
   [ -f "$file" ] || return 0
   local hash
   hash="$(scc_file_sha256 "$file")" \
-    || { scc_warn "cannot hash $SCC_PROJECT_FILE (no sha256sum/shasum); ignoring it"; return 0; }
+    || { scc_warn "cannot hash $SCC_PROJECT_FILE (no sha256sum/shasum), ignoring it"; return 0; }
 
   if scc_project_is_trusted "$file" "$hash"; then
     scc_project_parse "$file"; return 0
@@ -79,6 +79,6 @@ scc_project_load() {
       *)           scc_info "ignoring $SCC_PROJECT_FILE" ;;
     esac
   else
-    scc_warn "found an untrusted $SCC_PROJECT_FILE; ignoring it (run 'scc trust' to allow it)"
+    scc_warn "found an untrusted $SCC_PROJECT_FILE, ignoring it (run 'scc trust' to allow it)"
   fi
 }

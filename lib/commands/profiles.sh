@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/profiles.sh: list the home-volume profiles that exist.
 # VOLUME is set by the dispatcher (the currently selected profile).
 # shellcheck disable=SC2154

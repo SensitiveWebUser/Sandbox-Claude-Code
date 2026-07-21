@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # Remote bootstrap installer:
 #
@@ -33,9 +33,9 @@ need() { command -v "$1" >/dev/null 2>&1 || die "required tool '$1' not found"; 
 if [[ "${SCC_SKIP_OS_CHECK:-0}" != "1" ]]; then
   case "$(uname -s)" in
     Linux) ;;
-    Darwin) say "macOS is unofficial/untested; proceeding (set SCC_SKIP_OS_CHECK=1 to silence)." ;;
+    Darwin) say "macOS is unofficial/untested, proceeding (set SCC_SKIP_OS_CHECK=1 to silence)." ;;
     MINGW*|MSYS*|CYGWIN*|Windows_NT) die "Windows is not supported. Install WSL2 and run this inside a Linux distro." ;;
-    *) say "unrecognized OS '$(uname -s)'; proceeding unsupported." ;;
+    *) say "unrecognized OS '$(uname -s)', proceeding unsupported." ;;
   esac
 fi
 
@@ -43,7 +43,7 @@ need curl
 need tar
 
 # Require a configured repo whenever the URL is built from SCC_REPO (both the
-# latest and pinned paths); else the placeholder could fetch+run install.sh
+# latest and pinned paths), else the placeholder could fetch+run install.sh
 # from an unowned github.com/OWNER/REPO. Security-critical.
 if [[ -z "${SCC_TARBALL_URL:-}" && "$SCC_REPO" == "OWNER/REPO" ]]; then
   die "no repo configured: set SCC_REPO=owner/repo (or SCC_TARBALL_URL)"
@@ -77,7 +77,7 @@ fi
 tar -xzf "$TMP/scc.tar.gz" -C "$TMP" || die "could not extract tarball"
 
 # Find install.sh: GitHub layout (depth 2) or flat tarball (depth 1). `sort` for
-# determinism; `|| true` so head's SIGPIPE doesn't trip set -e/pipefail.
+# determinism. `|| true` so head's SIGPIPE doesn't trip set -e/pipefail.
 INSTALLER="$(find "$TMP" -mindepth 1 -maxdepth 2 -name install.sh -type f | sort | head -n1 || true)"
 [[ -n "$INSTALLER" ]] || die "install.sh not found inside the tarball"
 

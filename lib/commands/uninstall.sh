@@ -1,13 +1,13 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/uninstall.sh: remove scc. Safe by default: only the launcher and
-# build dir; config/volume/image removed only when explicitly requested.
+# build dir. Config/volume/image removed only when explicitly requested.
 # SCC_DIR/VOLUME/IMAGE/SCC_CONFIG_FILE come from the dispatcher, hence SC2154.
 # shellcheck disable=SC2154
 
 cmd_uninstall() {
   # Resolve the installed launcher via PATH (finds a custom BIN_DIR install,
-  # since it must be on PATH to be runnable); fall back to the default dir.
+  # since it must be on PATH to be runnable). Fall back to the default dir.
   local launcher
   launcher="$(command -v scc 2>/dev/null || true)"
   [[ -n "$launcher" ]] || launcher="${BIN_DIR:-$HOME/.local/bin}/scc"
@@ -41,11 +41,11 @@ EOF
   if [[ -e "$launcher" ]]; then
     echo "  launcher:  $launcher"
   else
-    scc_warn "launcher not found (looked for $launcher); if installed to a custom path, remove it manually"
+    scc_warn "launcher not found (looked for $launcher). If installed to a custom path, remove it manually"
   fi
   [[ -d "$SCC_DIR" ]]          && echo "  build dir: $SCC_DIR"
   if (( rm_config )); then [[ -e "$SCC_CONFIG_FILE" ]] && echo "  config:    $SCC_CONFIG_FILE"; fi
-  if (( rm_volume )); then echo "  volume:    $VOLUME  (your login + Claude Code install; you will need to log in again)"; fi
+  if (( rm_volume )); then echo "  volume:    $VOLUME  (your login + Claude Code install, so you must log in again)"; fi
   if (( rm_image ));  then echo "  image:     $IMAGE"; fi
   echo
   scc_dim "Kept unless requested: config (--config), home volume (--volume), image (--image)."
@@ -57,7 +57,7 @@ EOF
     read -r reply || true
     case "$reply" in
       y|Y|yes|YES) ;;
-      *) scc_die "aborted; nothing was removed." ;;
+      *) scc_die "aborted. Nothing was removed." ;;
     esac
   fi
 

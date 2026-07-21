@@ -12,14 +12,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Grow `scc` from a personal helper into a polished, source-available tool that a developer can adopt in **under a minute** and trust with an autonomous agent. Two ideas govern every decision:
 
-1. **"Apple-style, it just works."** The happy path takes zero configuration. Sensible, safe defaults; no flag soup; no required config file. Power is available when you reach for it, invisible when you don't. If a feature needs a manual to use, it isn't done.
+1. **"Apple-style, it just works."** The happy path takes zero configuration. Sensible and safe defaults, no flag soup, no required config file. Power is available when you reach for it, invisible when you don't. If a feature needs a manual to use, it isn't done.
 2. **Safe by default, honest about limits.** The whole point is running an agent you don't fully trust. Security defaults lean strict (see the invariants below), and the docs never overstate the protection a container provides.
 
 Supporting principles: **modular** (small pieces with clear seams, so features land without touching the core), **buildable-on** (well-defined extension points, so a contributor can add a toolchain or a subcommand without understanding the whole system), and **a well-built core** (the launcher, entrypoint, and firewall are the load-bearing parts and must be tested and rock-solid before breadth is added).
 
 ## Licensing (source-available, not OSI-"open")
 
-`scc` is under the **[PolyForm Noncommercial License 1.0.0](./LICENSE)** plus a **[CLA](./CLA.md)**. Anyone may use, modify, and share it for noncommercial purposes; only the copyright holder may commercialize it. This is deliberately **source-available, not "open source"** in the OSI sense: never describe it as "open source" or "OSI-approved" in code, docs, or commit messages. Say **"source-available"** or **"free for noncommercial use."** Every new distributable file that carries a header should carry the noncommercial notice (see `AGENTS.md`).
+`scc` is under the **[PolyForm Noncommercial License 1.0.0](./LICENSE)** plus a **[CLA](./CLA.md)**. Anyone may use, modify, and share it for noncommercial purposes. Only the copyright holder may commercialize it. This is deliberately **source-available, not "open source"** in the OSI sense: never describe it as "open source" or "OSI-approved" in code, docs, or commit messages. Say **"source-available"** or **"free for noncommercial use."** Every new distributable file that carries a header should carry the noncommercial notice (see `AGENTS.md`).
 
 ## Not affiliated with Anthropic
 
@@ -42,7 +42,7 @@ Dockerfile               # builds scc:latest from node:22-bookworm-slim (Anthrop
 entrypoint.sh            # in-container: remap UID/GID, fix volume ownership, raise firewall, gosu→node
 init-firewall.sh         # in-container: default-deny egress allowlist (iptables/ipset)
 install.sh               # copies build files + lib/ to ~/.scc, launcher to ~/.local/bin
-tests/                   # *.bats + helpers.bash + stubs/docker (docker stubbed; asserts on argv)
+tests/                   # *.bats + helpers.bash + stubs/docker (docker stubbed, asserts on argv)
 .github/workflows/ci.yml # shellcheck -x + bats + docker build smoke
 ```
 
@@ -54,16 +54,16 @@ Control flow: `scc <cmd>` → source `lib/` + `commands/` → `scc_config_load` 
 
 ## Roadmap (agreed feature direction)
 
-Build in roughly this order; **core hardening and testing before breadth**. Each item must land behind good defaults and stay optional. Full milestone detail lives in the plan (`/home/node/.claude/plans/snoopy-launching-haven.md`).
+Build in roughly this order. **Core hardening and testing before breadth**. Each item must land behind good defaults and stay optional. Full milestone detail lives in the plan (`/home/node/.claude/plans/snoopy-launching-haven.md`).
 
 - **✅ M0 (done): clean foundation**. Modular `lib/` refactor, global config file, `bats` tests + `shellcheck` CI, OS guard. Everything below builds on this.
 1. **Public prebuilt image**: publish the base image (preferred: **GitHub Container Registry / GHCR**) so first run doesn't require a local build. Keep local build fully supported.
-2. **Image slimming**: the image is ~900 MB today; trim it (leaner base, fewer layers) without losing tools agents/firewall need.
-3. **First-class git** (opt-in `--git`): enable in-sandbox git incl. **commit signing** by forwarding the signer (SSH-signing via `SSH_AUTH_SOCK`, or gpg-agent). Off by default; today signing is force-disabled because no keys exist in the container.
-4. **`gh` CLI, plugged in from the host** (opt-in `--gh`): install `gh`; inject a **token only** via `gh auth token` on the host as `-e GH_TOKEN`. Never mount host `gh`/ssh config.
-5. **Language toolchain presets**: opt-in Python/Go/Rust/Node layers (`scc --with python,rust`) as layered image variants; default stays slim.
+2. **Image slimming**: the image is ~900 MB today. Trim it (leaner base, fewer layers) without losing tools agents/firewall need.
+3. **First-class git** (opt-in `--git`): enable in-sandbox git incl. **commit signing** by forwarding the signer (SSH-signing via `SSH_AUTH_SOCK`, or gpg-agent). Off by default. Today signing is force-disabled because no keys exist in the container.
+4. **`gh` CLI, plugged in from the host** (opt-in `--gh`): install `gh`, then inject a **token only** via `gh auth token` on the host as `-e GH_TOKEN`. Never mount host `gh`/ssh config.
+5. **Language toolchain presets**: opt-in Python/Go/Rust/Node layers (`scc --with python,rust`) as layered image variants. Default stays slim.
 6. **Named / persistent profiles**: multiple home volumes (`--profile work`) for separate logins/state, plus reset.
-7. **Per-project config (`.scc.conf`)**: reuses the config parser with a **restricted, security-gated** allowlist (untrusted cloned-repo input; may only tighten, never loosen; direnv-style repo-trust prompt).
+7. **Per-project config (`.scc.conf`)**: reuses the config parser with a **restricted, security-gated** allowlist (untrusted cloned-repo input that may only tighten, never loosen, with a direnv-style repo-trust prompt).
 8. **`uninstall` subcommand + richer `help`**: clean removal (launcher, `~/.scc`, optionally the volume/image).
 
 ## Working on this repo
@@ -74,15 +74,15 @@ bats tests               # unit + stubbed-docker dispatch tests (no real docker 
 # Launcher/lib edits take effect immediately when running the repo's ./scc.
 # Image changes only:
 ./install.sh && scc rebuild
-scc shell                # plain shell in the sandbox; run `claude doctor`
+scc shell                # plain shell in the sandbox, run `claude doctor`
 SCC_FIREWALL=1 scc shell # exercise the firewall path
 ```
 
 ## Invariants to preserve when editing
 
-These are the security properties the project exists to provide. `AGENTS.md` states them as hard rules; the summary:
+These are the security properties the project exists to provide. `AGENTS.md` states them as hard rules. The summary:
 
-- **Least privilege in `scc`**: `--cap-drop ALL` + only the six caps the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL); firewall path adds NET_ADMIN + NET_RAW. Plus `--security-opt no-new-privileges`, `--pids-limit`, `--init`. No `sudo` in the image.
+- **Least privilege in `scc`**: `--cap-drop ALL` + only the six caps the entrypoint needs (CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, KILL). Firewall path adds NET_ADMIN + NET_RAW. Plus `--security-opt no-new-privileges`, `--pids-limit`, `--init`. No `sudo` in the image.
 - **Only the current directory is mounted** (`-v "$PWD:$PWD"`, same absolute path), plus `~/.gitconfig` read-only and the `scc-home` volume. SSH keys, the rest of `$HOME`, and host env are deliberately not shared. `guard_workdir` refuses `$HOME` or `/`.
 - **Firewall defaults are mode-dependent**: off for interactive `scc`, ON for `scc yolo`. `SCC_FIREWALL=1|0` overrides.
 - **Firewall fails closed**: `init-firewall.sh` runs `set -euo pipefail`, fetches GitHub ranges *before* tightening policy, ends with a positive/negative reachability check that `exit 1`s on failure, and closes IPv6 entirely. Keep the verification step.

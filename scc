@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # scc: sandboxed Claude Code
 # Source-available under PolyForm Noncommercial 1.0.0 (see LICENSE):
-# free for noncommercial use; commercial use needs a separate license.
+# free for noncommercial use. Commercial use needs a separate license.
 #
 # NOTICE: independent, UNOFFICIAL project, not affiliated with Anthropic and
 # does not own or control Claude Code. It runs Anthropic's official CLI unmodified.
 #
 # Thin dispatcher: locate lib/, load config, guard OS, route to a subcommand.
-# Run assembly is in lib/docker.sh; in-container setup in entrypoint.sh.
+# Run assembly is in lib/docker.sh. In-container setup in entrypoint.sh.
 # Resolved settings below are consumed by the sourced modules, so a static
 # check can't see their use across the dynamic source: silence SC2034.
 # shellcheck disable=SC2034
@@ -16,7 +16,7 @@ set -euo pipefail
 SCC_SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCC_DIR="${SCC_DIR:-$HOME/.scc}"
 
-# Prefer lib/ next to this script (running from the repo, no reinstall needed);
+# Prefer lib/ next to this script (running from the repo, no reinstall needed),
 # otherwise the installed copy under ~/.scc/lib.
 if [[ -d "$SCC_SELF/lib" ]]; then SCC_LIB="$SCC_SELF/lib"; else SCC_LIB="$SCC_DIR/lib"; fi
 [[ -d "$SCC_LIB" ]] \
@@ -37,7 +37,7 @@ scc_config_load
 
 # A leading global --profile NAME selects a separate home volume (so it is
 # resolved before VOLUME) and applies to every subcommand, including login.
-# Env/config give the default; a leading flag overrides.
+# Env/config give the default. A leading flag overrides.
 SCC_PROFILE="$(scc_resolve profile SCC_PROFILE "")"
 while true; do
   case "${1:-}" in
@@ -65,7 +65,7 @@ esac
 
 scc_guard_os
 
-# uninstall removes files and (optionally) docker objects; it must run even
+# uninstall removes files and (optionally) docker objects. It must run even
 # when docker is already gone, so it is exempt from the docker requirement.
 case "$cmd" in
   uninstall) shift; cmd_uninstall "$@"; exit 0 ;;

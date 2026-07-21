@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # lib/common.sh: small shared helpers. Sourcing has no side effects.
 
@@ -37,7 +37,7 @@ scc_require_docker() {
     || scc_die "docker not found. On Arch: sudo pacman -S docker docker-buildx"
 }
 
-# Refuse unsupported OSes: Linux ok; macOS allowed but untested; native Windows
+# Refuse unsupported OSes: Linux ok, macOS allowed but untested, native Windows
 # refused (use WSL2). Override with SCC_SKIP_OS_CHECK=1.
 scc_guard_os() {
   [[ "${SCC_SKIP_OS_CHECK:-0}" == "1" ]] && return 0
@@ -51,7 +51,7 @@ scc_guard_os() {
     MINGW*|MSYS*|CYGWIN*|Windows_NT)
       scc_die "Windows is not supported. Install WSL2, then run scc inside a Linux distro." ;;
     *)
-      scc_warn "unrecognized OS '$(uname -s)'; proceeding unsupported."
+      scc_warn "unrecognized OS '$(uname -s)', proceeding unsupported."
       return 0 ;;
   esac
 }

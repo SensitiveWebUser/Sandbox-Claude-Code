@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # Toolchain layer: adds language runtimes atop the scc base image, into system
 # paths (not the home dir) so they survive the runtime home volume. Built on
-# demand by `scc --with ...`; the launcher supplies BASE and TOOLCHAINS.
+# demand by `scc --with ...`. The launcher supplies BASE and TOOLCHAINS.
 ARG BASE=scc:latest
 FROM ${BASE}
 

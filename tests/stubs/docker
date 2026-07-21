@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Test stub for `docker`: never runs anything. `image inspect` succeeds (so the
-# launcher thinks the image exists and skips building); every other invocation
+# launcher thinks the image exists and skips building). Every other invocation
 # records its full argument list to $SCC_DOCKER_LOG for assertions.
 set -eu
 

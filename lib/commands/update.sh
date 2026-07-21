@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/update.sh: force Claude Code to the newest release right now.
 #
 # IMAGE / ARGS are set by the dispatcher + scc_base_args.

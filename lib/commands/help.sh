@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/help.sh: usage text.
 
 cmd_help() {
@@ -18,7 +18,7 @@ Global flag (before the subcommand, e.g. `scc --profile work login`):
 
 Run flags (before claude args, e.g. `scc --hardened "fix the tests"`):
   --hardened           Max lockdown: read-only rootfs + tmpfs + firewall on.
-                       Opt-in; may restrict what the agent can write or reach.
+                       Opt-in, may restrict what the agent can write or reach.
   --ssh-agent          Forward your SSH agent so in-sandbox git can sign commits
                        and push. Your private key never enters the container.
   --with LIST          Add language toolchains for this run (comma-separated:
@@ -35,10 +35,10 @@ Management:
 
 Configuration (all optional):
   Config file:   ${XDG_CONFIG_HOME:-~/.config}/scc/config   (override: $SCC_CONFIG)
-                 key = value; keys: image, volume, pids_limit, firewall,
+                 key = value. Keys: image, volume, pids_limit, firewall,
                  extra_domains, docker_args, profile, toolchains
-  Project file:  .scc.conf in a repo (trust-gated; may set only toolchains and
-                 firewall-on). Ignored until trusted; run `scc trust` to allow.
+  Project file:  .scc.conf in a repo (trust-gated, may set only toolchains and
+                 firewall-on). Ignored until trusted. Run `scc trust` to allow.
   Precedence:    defaults < config file < project file < environment < flags
 
 Environment switches:
@@ -50,6 +50,6 @@ Environment switches:
   SCC_SKIP_OS_CHECK=1            Skip the operating-system support check
 
 scc is source-available under PolyForm Noncommercial 1.0.0 and is not
-affiliated with Anthropic; it runs Anthropic's official Claude Code unmodified.
+affiliated with Anthropic. It runs Anthropic's official Claude Code unmodified.
 EOF
 }

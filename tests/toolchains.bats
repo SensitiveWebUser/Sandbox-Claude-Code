@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
-# --with: opt-in language toolchain layers (launcher logic only; the actual
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
+# --with: opt-in language toolchain layers (launcher logic only, the actual
 # image builds are validated by CI).
 load helpers
 

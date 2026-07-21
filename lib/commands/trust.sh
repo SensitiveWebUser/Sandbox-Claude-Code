@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/trust.sh: trust/inspect this repo's .scc.conf so scc honors it.
 # SCC_PROJECT_FILE / SCC_TRUST_FILE come from lib/project.sh.
 # shellcheck disable=SC2154

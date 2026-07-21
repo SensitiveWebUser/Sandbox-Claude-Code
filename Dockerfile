@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 #
 # scc: sandboxed Claude Code
-# Source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# Source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 #
 # NOTICE: scc is an INDEPENDENT, UNOFFICIAL project. It is NOT affiliated with,
 # endorsed by, or bundled with Anthropic or Claude Code. This image does not
-# contain Claude Code; it downloads Anthropic's official CLI at build time from
+# contain Claude Code. It downloads Anthropic's official CLI at build time from
 # Anthropic's own installer and runs it unmodified. "Claude"/"Claude Code" are
 # Anthropic's. Use of Claude Code is governed by Anthropic's terms.
 #
@@ -19,7 +19,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # apt config: retry fetches and disable HTTP pipelining, robust against flaky
 # CDNs/proxies/VM NAT ("Ign ... Remote end closed connection").
-# libstdc++6/libgcc-s1: the native binary links them; explicit so the slim base
+# libstdc++6/libgcc-s1: the native binary links them, listed explicitly so the slim base
 # is guaranteed to carry them. bind9-dnsutils provides dig (dnsutils is transitional).
 # The final find strips setuid/setgid bits: the sandboxed agent needs none, and
 # it removes a local privilege-escalation path (gosu runs as root, not setuid).

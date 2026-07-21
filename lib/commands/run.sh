@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/commands/run.sh: default is Claude Code in the current repo.
 # SCC_HARDENED/SCC_ARGV are set by scc_take_flags.
 # shellcheck disable=SC2154

@@ -1,6 +1,6 @@
 # Contributor License Agreement (CLA)
 
-> **Why this exists.** `scc` is released under the [PolyForm Noncommercial License](./LICENSE): everyone may use it freely for noncommercial purposes, and the copyright holder ("the Project Owner") retains the exclusive right to license it commercially. For that to hold, the Project Owner must receive rights to your contributions that are at least as broad as the rights they hold in the rest of the project. This agreement grants exactly that: you keep ownership of your work; the Project Owner gains the freedom to use it, including commercially.
+> **Why this exists.** `scc` is released under the [PolyForm Noncommercial License](./LICENSE): everyone may use it freely for noncommercial purposes, and the copyright holder ("the Project Owner") retains the exclusive right to license it commercially. For that to hold, the Project Owner must receive rights to your contributions that are at least as broad as the rights they hold in the rest of the project. This agreement grants exactly that: you keep ownership of your work. The Project Owner gains the freedom to use it, including commercially.
 >
 > **Not legal advice.** This is a plain-language template, not a lawyer-reviewed instrument. Have counsel review it before relying on it commercially.
 
@@ -36,4 +36,4 @@ You are not required to provide support for your Contribution, and unless requir
 
 ---
 
-**How contributors accept this CLA:** the project accepts contributions via [DCO](https://developercertificate.org/)-style sign-off **plus** agreement to this CLA. Sign each commit with `git commit -s` (adding a `Signed-off-by:` line) and, on your first pull request, confirm in a comment: *"I have read and agree to the CLA."* Automated CLA-assistant bots (e.g. CLA Assistant) may be wired up later to record this; until then the PR comment is the record.
+**How contributors accept this CLA:** the project accepts contributions via [DCO](https://developercertificate.org/)-style sign-off **plus** agreement to this CLA. Sign each commit with `git commit -s` (adding a `Signed-off-by:` line) and, on your first pull request, confirm in a comment: *"I have read and agree to the CLA."* Automated CLA-assistant bots (e.g. CLA Assistant) may be wired up later to record this. Until then the PR comment is the record.

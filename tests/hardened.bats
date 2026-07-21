@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # --hardened flag parsing and its effect on the run args.
 load helpers
 

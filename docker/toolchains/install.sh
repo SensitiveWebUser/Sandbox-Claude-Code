@@ -1,5 +1,5 @@
 #!/bin/sh
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # Install requested language toolchains into system paths (never $HOME, so they
 # are not shadowed by the runtime home volume). Runs as root at build time.
 # Args: toolchain names among go node python rust.

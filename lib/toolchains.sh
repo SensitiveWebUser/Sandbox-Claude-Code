@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # lib/toolchains.sh: opt-in language layers, built on demand atop the base image
 # (e.g. `scc --with python,rust`). IMAGE / SCC_BUILD_DIR / SCC_WITH are set by
 # the dispatcher and the command.
@@ -34,7 +34,7 @@ scc_apply_toolchains() {
   if ! docker image inspect "$tag" >/dev/null 2>&1; then
     [ -f "$SCC_BUILD_DIR/docker/toolchains/Dockerfile" ] \
       || scc_die "toolchain build files not found under $SCC_BUILD_DIR/docker/toolchains"
-    scc_info "building toolchain image $tag (first use; toolchains: $tc)"
+    scc_info "building toolchain image $tag (first use, toolchains: $tc)"
     docker build --build-arg "BASE=$base" --build-arg "TOOLCHAINS=$tc" \
       -t "$tag" "$SCC_BUILD_DIR/docker/toolchains"
   fi

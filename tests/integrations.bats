@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # --ssh-agent: forward the SSH agent for commit signing and push.
 load helpers
 

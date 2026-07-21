@@ -1,4 +1,4 @@
-# scc: source-available under PolyForm Noncommercial 1.0.0; see LICENSE.
+# scc: source-available under PolyForm Noncommercial 1.0.0 (see LICENSE).
 # Shared bats helpers.
 
 SCC_ROOT="$(cd "$BATS_TEST_DIRNAME/.." && pwd)"
